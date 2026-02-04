@@ -4,8 +4,10 @@ import ServicesSection from "./about/components/ServiceSection";
 export default function AboutPage() {
   return (
     <>
-      <HeroSection />
-      <ServicesSection />
+      <div className="bg-white overflow-hidden">
+        <HeroSection />
+        <ServicesSection />
+      </div>
     </>
   );
 }
