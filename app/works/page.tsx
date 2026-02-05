@@ -6,7 +6,7 @@ export default function WorksPage() {
   return (
     <section className="bg-white flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="bg-[#161616] text-white py-28">
+      <div className="bg-[#161616] text-white py-28 px-6">
         <div className="max-w-125 w-full flex flex-col justify-center items-center mx-auto text-center">
           <h1 className="text-[48px] md:text-[96px] font-bold">Our Works</h1>
           <div className="w-fit">
@@ -17,7 +17,7 @@ export default function WorksPage() {
           </div>
         </div>
       </div>
-      <div className="bg-white py-24 px-24">
+      <div className="bg-white py-24 px-6 md:px-24">
         <div className="w-full flex flex-col justify-center items-center mx-auto text-center">
           <h1 className="text-[#A30A24] text-[48px] md:text-[72px] font-bold">
             Lorem Ipsum
@@ -40,7 +40,7 @@ export default function WorksPage() {
           </div>
         </div>
       </div>
-      <div className="bg-[#F2F2F2] py-24 px-24">
+      <div className="bg-[#F2F2F2] py-24 px-6 md:px-24">
         <div className="w-full flex flex-col justify-center items-center gap-12 mx-auto text-center">
           <div className="w-fit flex flex-col gap-2 text-[#161616]">
             <h1 className="text-[#A30A24] text-[48px] md:text-[72px] font-bold">
@@ -50,7 +50,7 @@ export default function WorksPage() {
               Take a glimpse into our creative process and studio environment
             </p>
           </div>
-          <div className="flex-1 w-full lg:w-[1620px] h-auto bg-[#A30A24] overflow-hidden">
+          <div className="flex-1 w-full lg:max-w-[1620px] h-auto bg-[#A30A24] overflow-hidden">
             <video autoPlay muted loop className="w-full h-full object-cover">
               <source
                 src="/assets/blinkworks/bcs_ad_10_things.mp4"

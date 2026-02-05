@@ -8,7 +8,7 @@ export default function Footer() {
           READY TO CREATE {"\n"} SOMETHING BEAUTIFUL?
         </h3>
         <p className="text-[24px] md:text-[36px]">IDEAS MADE EFFECTIVE</p>
-        <div className="flex flex-col md:flex-row gap-8 md:gap-12 justify-center items-center">
+        <div className="flex flex-col md:flex-row gap-8 md:gap-8 justify-center items-center">
           <SkewButton href="/about">BOOK NOW</SkewButton>
           <SkewButton href="/about">TALK TO OUR TEAM</SkewButton>
         </div>

@@ -63,9 +63,9 @@ export default function Header() {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className={`px-4 py-3 transition-colors border-b-4 font-medium ${
+                    className={`px-4 py-3 transition-colors font-medium ${
                       isActive
-                        ? "text-[#161616] border-[#A30A24]"
+                        ? "text-[#161616] border-[#A30A24] border-b-3"
                         : "text-[#6E6E6E] border-transparent hover:text-[#A30A24] hover:border-[#A30A24]"
                     }`}
                   >
@@ -75,7 +75,7 @@ export default function Header() {
               );
             })}
           </ul>
-          <SkewButton href="/about">BOOK NOW</SkewButton>
+          <SkewButton href="/">BOOK NOW</SkewButton>
         </div>
 
         {/* Mobile Hamburger */}
