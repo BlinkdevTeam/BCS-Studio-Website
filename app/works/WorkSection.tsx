@@ -63,7 +63,7 @@ export default function WorksSection() {
       {/* Header */}
       <div className="mb-12 text-center">
         <h2 className="text-[#A30A24] text-[48px] md:text-[72px] font-bold">
-          Our Works
+          Behind the Lens
         </h2>
         <p className="text-[#6E6E6E] text-[24px] md:text-[36px]">
           Take a glimpse into our creative process and studio environment

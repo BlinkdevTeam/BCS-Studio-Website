@@ -1,43 +1,5 @@
 import SkewButton from "@/components/ui/buttons/SkewButton";
-
-const PROMOS = [
-  {
-    title: "First Session Discount",
-    description:
-      "Individual portrait sessions that capture your unique personality with professional lighting and artistic direction.",
-    discount: "20% OFF",
-    validUntil: "Valid until Mar 31, 2026",
-    href: "/promotions/first-session",
-    cta: "LEARN MORE",
-  },
-  {
-    title: "Family Bundle Package",
-    description:
-      "Individual portrait sessions that capture your unique personality with professional lighting and artistic direction.",
-    discount: "P299",
-    validUntil: "Valid unti Mar 31, 2026",
-    href: "/promotions/first-session",
-    cta: "CLAIM OFFER",
-  },
-  {
-    title: "Studio Rental",
-    description:
-      "Individual portrait sessions that capture your unique personality with professional lighting and artistic direction.",
-    discount: "20% OFF",
-    validUntil: "Valid unti Mar 31, 2026",
-    href: "/promotions/first-session",
-    cta: "LEARN MORE",
-  },
-  {
-    title: "Graduation Special",
-    description:
-      "Individual portrait sessions that capture your unique personality with professional lighting and artistic direction.",
-    discount: "P199",
-    validUntil: "Valid unti Mar 31, 2026",
-    href: "/promotions/first-session",
-    cta: "LEARN MORE",
-  },
-];
+import { PROMOS } from "@/data/promo";
 
 export default function CurrentPromo() {
   return (

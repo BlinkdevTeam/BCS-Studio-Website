@@ -75,7 +75,7 @@ export default function Header() {
               );
             })}
           </ul>
-          <SkewButton href="/">BOOK NOW</SkewButton>
+          <SkewButton href="/book-now">BOOK NOW</SkewButton>
         </div>
 
         {/* Mobile Hamburger */}
@@ -124,7 +124,10 @@ export default function Header() {
             </ul>
 
             <div className="px-6 mt-6">
-              <SkewButton href="/about" onClick={() => setSidebarOpen(false)}>
+              <SkewButton
+                href="/book-now"
+                onClick={() => setSidebarOpen(false)}
+              >
                 BOOK NOW
               </SkewButton>
             </div>
