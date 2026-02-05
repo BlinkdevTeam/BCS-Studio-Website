@@ -19,6 +19,7 @@ type SkewButtonProps =
 export default function SkewButton(props: SkewButtonProps) {
   const { children, className } = props;
 
+  // Adjust padding for mobile so skew doesn't overflow
   const commonClasses = `w-fit bg-[#A30A24] hover:bg-white border-3 border-[#A30A24]
     text-white hover:text-[#A30A24] text-[18px] px-4 md:px-8 py-2 transition transform
     inline-block ${className ?? ""}`;
@@ -29,7 +30,6 @@ export default function SkewButton(props: SkewButtonProps) {
     </span>
   );
 
-  // ✅ LINK VARIANT (href guaranteed)
   if (typeof props.href === "string") {
     return (
       <Link
@@ -43,7 +43,6 @@ export default function SkewButton(props: SkewButtonProps) {
     );
   }
 
-  // ✅ BUTTON VARIANT
   return (
     <button
       onClick={props.onClick}

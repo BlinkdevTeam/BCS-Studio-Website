@@ -7,10 +7,10 @@ export default function WorksPage() {
     <section className="bg-white flex flex-col overflow-hidden">
       {/* Header */}
       <div className="bg-[#161616] text-white py-28 px-6">
-        <div className="max-w-125 w-full flex flex-col justify-center items-center mx-auto text-center">
-          <h1 className="text-[48px] md:text-[96px] font-bold">Our Works</h1>
+        <div className="max-w-220 w-full flex flex-col justify-center items-center mx-auto text-center">
+          <h1 className="text-[72px] md:text-[96px] font-bold">Our Works</h1>
           <div className="w-fit">
-            <p className="text-[18px] md:text-[24px]">
+            <p className="text-[36px] md:text-[48px]">
               A collection of moments captured, stories told, and visions
               brought to life
             </p>
