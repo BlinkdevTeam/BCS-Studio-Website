@@ -108,7 +108,7 @@ export default function WorksSection() {
       {shuffledWorks.length === 0 ? (
         <p className="text-center text-[#6E6E6E] mt-12">Loading works...</p>
       ) : (
-        <div className="columns-2 lg:columns-3 gap-4 space-y-4">
+        <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
           {displayedWorks.map((work) => (
             <div
               key={work.id}
