@@ -1,13 +1,10 @@
 // data/works.ts
-export type ServiceCategory =
-| "portraits"
-| "studio"
-| "event"
+export type ServiceCategory = "portraits" | "studio" | "event";
 
 export interface ServiceAddon {
-  id: string;   
-  label: string;   
-  price: string;   
+  id: string;
+  label: string;
+  price: number;
 }
 
 export interface Service {
@@ -15,12 +12,13 @@ export interface Service {
   title: string;
   slug: string;
   desc: string;
-  price: string;
+  price: number;
   category: ServiceCategory;
   image: string;
   inclusions: string[];
   addons: ServiceAddon[];
 }
+
 
 export const SERVICES: Service[] = [
   {
@@ -28,7 +26,7 @@ export const SERVICES: Service[] = [
     slug: "studio-solo",
     title: "Solo",
     desc: "Individual portrait sessions that capture your unique personality with professional lighting and artistic direction.",
-    price: "P150",
+    price: 150,
     category: "portraits",
     image: "/assets/portraits/8R 0.jpg",
     inclusions: [
@@ -37,9 +35,9 @@ export const SERVICES: Service[] = [
       "5 edited digital photos",
     ],
     addons: [
-      { id: "addon-1", label: "Extra 1-hour session", price: "P200" },
-      { id: "addon-2", label: "Printed photo package", price: "P500" },
-      { id: "addon-3", label: "Makeup & styling", price: "P300" },
+      { id: "addon-1", label: "Extra 1-hour session", price: 200 },
+      { id: "addon-2", label: "Printed photo package", price: 500 },
+      { id: "addon-3", label: "Makeup & styling", price: 300 },
     ],
   },
   {
@@ -47,7 +45,7 @@ export const SERVICES: Service[] = [
     slug: "studio-grad",
     title: "Graduation",
     desc: "Celebrate your milestone with a professional graduation photoshoot.",
-    price: "P150",
+    price: 150,
     category: "portraits",
     image: "/assets/blinkworks/bcs_ad_10_things.mp4",
     inclusions: [
@@ -56,9 +54,9 @@ export const SERVICES: Service[] = [
       "8 edited digital photos",
     ],
     addons: [
-      { id: "addon-1", label: "Extra 1-hour session", price: "P200" },
-      { id: "addon-2", label: "Printed photo package", price: "P500" },
-      { id: "addon-3", label: "Makeup & styling", price: "P300" },
+      { id: "addon-1", label: "Extra 1-hour session", price: 200 },
+      { id: "addon-2", label: "Printed photo package", price: 500 },
+      { id: "addon-3", label: "Makeup & styling", price: 300 },
     ],
   },
   {
@@ -66,7 +64,7 @@ export const SERVICES: Service[] = [
     slug: "studio-couple",
     title: "Couple",
     desc: "Capture meaningful moments together in a cozy studio environment.",
-    price: "P750",
+    price: 750,
     category: "portraits",
     image: "/assets/portraits/8R 0.jpg",
     inclusions: [
@@ -75,9 +73,9 @@ export const SERVICES: Service[] = [
       "10 edited digital photos",
     ],
     addons: [
-      { id: "addon-1", label: "Extra 1-hour session", price: "P200" },
-      { id: "addon-2", label: "Printed photo package", price: "P500" },
-      { id: "addon-3", label: "Makeup & styling", price: "P300" },
+      { id: "addon-1", label: "Extra 1-hour session", price: 200 },
+      { id: "addon-2", label: "Printed photo package", price: 500 },
+      { id: "addon-3", label: "Makeup & styling", price: 300 },
     ],
   },
   {
@@ -85,7 +83,7 @@ export const SERVICES: Service[] = [
     slug: "studio-group",
     title: "Group",
     desc: "Perfect for friends, families, or small teams.",
-    price: "P150",
+    price: 150,
     category: "portraits",
     image: "/assets/portraits/8R 0.jpg",
     inclusions: [
@@ -100,7 +98,7 @@ export const SERVICES: Service[] = [
     slug: "rental-regular",
     title: "Regular",
     desc: "A flexible studio rental option for creators and photographers.",
-    price: "P150",
+    price: 150,
     category: "studio",
     image: "/assets/portraits/8R 0.jpg",
     inclusions: [
@@ -115,7 +113,7 @@ export const SERVICES: Service[] = [
     slug: "rental-green",
     title: "Green Screen",
     desc: "Ideal for video shoots, ads, and creative productions.",
-    price: "P150",
+    price: 150,
     category: "studio",
     image: "/assets/portraits/8R 0.jpg",
     inclusions: [

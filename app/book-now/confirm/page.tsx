@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import type { BookingData, createBooking } from "@/lib/postgres/api"; // ✅ single source of truth
+import type { BookingData } from "@/lib/postgres/api";
 
 export default function BookingConfirmation() {
   const searchParams = useSearchParams();
@@ -13,7 +13,7 @@ export default function BookingConfirmation() {
   useEffect(() => {
     const dataParam = searchParams.get("data");
     if (!dataParam) {
-      router.push("/book-now"); // go back if no data
+      router.push("/book-now");
       return;
     }
 
@@ -30,7 +30,7 @@ export default function BookingConfirmation() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/bookings", {
+      const res = await fetch("/api/createBooking", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(booking),
@@ -56,25 +56,55 @@ export default function BookingConfirmation() {
   return (
     <div className="max-w-3xl mx-auto p-6 border-2 border-[#A30A24]">
       <h1 className="text-2xl font-bold mb-4">Review Your Booking</h1>
+
+      {/* Customer Info */}
       <p>
-        <strong>Name:</strong> {booking.name}
+        <strong>Name:</strong> {booking.customer.name}
       </p>
       <p>
-        <strong>Email:</strong> {booking.email}
+        <strong>Email:</strong> {booking.customer.email}
       </p>
       <p>
-        <strong>Phone:</strong> {booking.phone}
+        <strong>Phone:</strong> {booking.customer.phone}
       </p>
+      <p>
+        <strong>Description:</strong> {booking.customer.description || "N/A"}
+      </p>
+
+      {/* Service Info */}
+      <p>
+        <strong>Service:</strong> {booking.service.title}
+      </p>
+      <p>
+        <strong>Base Price:</strong> ₱{booking.service.price}
+      </p>
+
+      {/* Addons */}
+      {booking.addons && booking.addons.length > 0 && (
+        <div>
+          <strong>Add-ons:</strong>
+          <ul className="list-disc ml-6">
+            {booking.addons.map((a) => (
+              <li key={a.id}>
+                {a.label} (+₱{a.price})
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Total Price */}
+      <p className="mt-2 font-bold">Total: ₱{booking.totalPrice}</p>
+
+      {/* Booking Date & Time */}
       <p>
         <strong>Date:</strong> {booking.date}
       </p>
       <p>
         <strong>Time:</strong> {booking.time}
       </p>
-      <p>
-        <strong>Description:</strong> {booking.description}
-      </p>
 
+      {/* Buttons */}
       <div className="flex gap-4 mt-6">
         <button
           type="button"

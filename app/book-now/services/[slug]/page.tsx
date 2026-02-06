@@ -1,22 +1,36 @@
+"use client";
+
+import { useState, useMemo, useEffect } from "react";
 import { notFound } from "next/navigation";
 import { SERVICES } from "@/data/service";
-import ServiceAddons from "@/components/ui/checkbox.tsx/ServiceAddons";
+import ServiceAddons from "@/components/ui/checkbox/ServiceAddons";
 import BookingForm from "@/components/ui/forms/BookingForm";
+import type { ServiceAddon } from "@/data/service";
 
 interface Props {
-  params: Promise<{
-    slug: string;
-  }>;
+  params: Promise<{ slug: string }>;
 }
 
-export default async function ServicePage({ params }: Props) {
-  const { slug } = await params;
+export default function ServicePage({ params }: Props) {
+  const [service, setService] = useState<(typeof SERVICES)[0] | null>(null);
+  const [selectedAddons, setSelectedAddons] = useState<ServiceAddon[]>([]);
 
-  const service = SERVICES.find((s) => s.slug === slug);
+  useEffect(() => {
+    params.then(({ slug }) => {
+      const found = SERVICES.find((s) => s.slug === slug);
+      if (!found) return notFound();
+      setService(found);
+    });
+  }, [params]);
 
-  if (!service) {
-    notFound();
-  }
+  const addonsTotal = useMemo(
+    () => selectedAddons.reduce((sum, a) => sum + a.price, 0),
+    [selectedAddons],
+  );
+
+  const totalPrice = service ? service.price + addonsTotal : 0;
+
+  if (!service) return null;
 
   return (
     <section className="px-6 lg:px-24 py-24 bg-white">
@@ -27,44 +41,39 @@ export default async function ServicePage({ params }: Props) {
           </h1>
 
           <p className="text-[18px] md:text-[24px] font-bold text-[#A30A24]">
-            {service.price}
+            ₱{service.price}
           </p>
+
           <p className="text-[16px] md:text-[18px] mb-4">{service.desc}</p>
+
           <p className="text-[18px] md:text-[24px] font-bold text-[#A30A24]">
             INCLUSIONS
           </p>
+
           <ul className="mt-6 space-y-2">
             {service.inclusions.map((item, index) => (
-              <li
-                key={index}
-                className="text-[16px] md:text-[18px] text-[#161616] flex items-start gap-2"
-              >
-                <span className="text-[#A30A24] font-bold">
-                  <svg
-                    width="32"
-                    height="32"
-                    viewBox="0 0 32 32"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M26.6668 8L12.0002 22.6667L5.3335 16"
-                      stroke="#A20C23"
-                      strokeWidth="5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </span>
+              <li key={index} className="flex gap-2">
                 {item}
               </li>
             ))}
           </ul>
-          <ServiceAddons addons={service.addons} />
+
+          <ServiceAddons
+            addons={service.addons}
+            selectedAddons={selectedAddons}
+            onChange={setSelectedAddons}
+          />
+
+          <p className="mt-6 text-[20px] font-bold text-[#A30A24]">
+            Total: ₱{totalPrice}
+          </p>
         </div>
-        <div>
-          <BookingForm />
-        </div>
+
+        <BookingForm
+          service={service}
+          selectedAddons={selectedAddons}
+          totalPrice={totalPrice}
+        />
       </div>
     </section>
   );
