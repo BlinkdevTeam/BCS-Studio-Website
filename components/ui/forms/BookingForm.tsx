@@ -1,13 +1,19 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+
 import { format, parseISO, isSameDay } from "date-fns";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
-import { fetchBookedSlots, createBooking } from "@/lib/api";
+// UPDATED: Import the type-safe functions from your new postgres folder
+import {
+  fetchBookedSlots,
+  createBooking,
+  fetchBlackoutDates,
+} from "@/lib/postgres/api";
 import { GrFormNext, GrFormPrevious } from "react-icons/gr";
 
-// 30-minute intervals
 const TIME_SLOTS = [
   "09:00",
   "09:30",
@@ -38,12 +44,11 @@ export default function BookingForm() {
     description: "",
   });
 
-  // Fetch blackout dates from PHP on mount
+  // UPDATED: Now fetches from your Next.js API instead of PHP
   useEffect(() => {
     const getBlackout = async () => {
       try {
-        const res = await fetch("http://localhost/api/get_blackout_dates.php");
-        const data: string[] = await res.json();
+        const data = await fetchBlackoutDates();
         setBlackoutDates(data.map((d) => parseISO(d)));
       } catch (err) {
         console.error("Failed to load blackout dates", err);
@@ -61,7 +66,6 @@ export default function BookingForm() {
       .catch((err) => console.error("Failed to fetch slots", err));
   }, [date]);
 
-  // Handle form submission
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
@@ -69,6 +73,7 @@ export default function BookingForm() {
 
       setLoading(true);
       try {
+        // UPDATED: Calling the ESLint-safe Postgres bridge
         const res = await createBooking({
           name: form.name,
           email: form.email,
@@ -84,8 +89,9 @@ export default function BookingForm() {
         } else {
           alert(res.error || "Slot already taken");
         }
-      } catch {
-        alert("Network error. Check if your PHP server is running.");
+      } catch (err) {
+        alert("Server error. Check if your PostgreSQL connection is active.");
+        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -93,9 +99,28 @@ export default function BookingForm() {
     [date, selectedTime, form],
   );
 
+  const router = useRouter();
+
+  const handleNext = () => {
+    if (!date || !selectedTime || !form.name || !form.email) return;
+
+    // Save all booking data
+    const bookingData = {
+      ...form,
+      date: format(date, "yyyy-MM-dd"),
+      time: selectedTime,
+    };
+
+    // Pass via query params (or use sessionStorage/localStorage for more data)
+    // FIXED
+    router.push(
+      `/book-now/confirm?data=${encodeURIComponent(JSON.stringify(bookingData))}`,
+    );
+  };
+
   return (
     <div className="w-full max-w-5xl mx-auto p-6 border-2 border-[#A30A24] bg-white text-[#A30A24]">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-4">
           {/* Left column: details & calendar */}
           <div className="space-y-4">
@@ -269,11 +294,12 @@ export default function BookingForm() {
             </p>
 
             <button
-              type="submit"
-              disabled={loading || !selectedTime || !form.name || !form.email}
+              type="button"
+              disabled={!selectedTime || !form.name || !form.email}
+              onClick={handleNext}
               className="w-full h-12 bg-black text-white font-bold rounded hover:bg-gray-900 transition"
             >
-              {loading ? "Verifying..." : "Confirm My Booking"}
+              Review Booking
             </button>
           </div>
         </div>
