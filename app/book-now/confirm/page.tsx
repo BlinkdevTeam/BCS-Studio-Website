@@ -35,16 +35,24 @@ export default function BookingConfirmation() {
   const handleConfirm = async (): Promise<void> => {
     if (!booking) return;
 
+    if (!proof) {
+      alert("Please upload payment proof");
+      return;
+    }
+
     setLoading(true);
 
     try {
+      const formData = new FormData();
+      formData.append("booking", JSON.stringify(booking));
+      formData.append("proof", proof);
+
       const res = await fetch("/api/bookings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(booking),
+        body: formData,
       });
 
-      const result: { message?: string; error?: string } = await res.json();
+      const result = await res.json();
 
       if (!res.ok) {
         throw new Error(result.error || "Booking failed");
@@ -53,7 +61,7 @@ export default function BookingConfirmation() {
       router.push("/book-now/success");
     } catch (error) {
       console.error(error);
-      alert("Failed to confirm booking. Please try again.");
+      alert("Failed to confirm booking.");
     } finally {
       setLoading(false);
     }
@@ -228,30 +236,35 @@ export default function BookingConfirmation() {
               </div>
             </section>
 
-            <div className="flex items-center gap-8">
-              <p className="bg-[#A30A24] w-8 h-8 text-white flex justify-center items-center rounded-full">
-                3
-              </p>
+            <section className="border-2 border-[#A30A24] p-12 space-y-2 text-center flex justify-center items-center">
               <div className="w-full">
                 <p className="text-[36px] font-bold">Upload Proof</p>
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,application/pdf"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
+                <p className="text-[24px]">
+                  Please upload your payment receipt to confirm your booking
+                </p>
+                <div className="flex justify-center items-center">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,application/pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
 
-                    if (file.size > 5 * 1024 * 1024) {
-                      alert("File must be 5MB or smaller");
-                      return;
-                    }
+                      if (file.size > 5 * 1024 * 1024) {
+                        alert("File must be 5MB or smaller");
+                        return;
+                      }
 
-                    setProof(file);
-                  }}
-                  className="mt-4"
-                />
+                      setProof(file);
+                    }}
+                    className="mt-4 text-center"
+                  />
+                </div>
+                <p className="text-[24px]">
+                  Accepted formats: JPG, PNG, PDF • Maximum file size: 5MB
+                </p>
               </div>
-            </div>
+            </section>
 
             {/* Actions */}
             <div className="flex justify-center gap-4 pt-4">
