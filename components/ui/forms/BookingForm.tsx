@@ -1,5 +1,4 @@
 // components/ui/forms/BookingForm.tsx
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -35,6 +34,13 @@ interface BookingFormProps {
   totalPrice: number;
 }
 
+interface FormData {
+  name: string;
+  email: string;
+  phone: string;
+  description: string;
+}
+
 export default function BookingForm({
   service,
   selectedAddons,
@@ -47,39 +53,51 @@ export default function BookingForm({
   const [blackoutDates, setBlackoutDates] = useState<Date[]>([]);
   const [selectedTime, setSelectedTime] = useState<string>("");
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormData>({
     name: "",
     email: "",
     phone: "",
     description: "",
   });
 
-  /* -------------------- Blackout Dates -------------------- */
+  /* -------------------- Fetch Blackout Dates -------------------- */
   useEffect(() => {
-    const getBlackout = async () => {
+    async function getBlackoutDates() {
       try {
         const data = await fetchBlackoutDates();
-        setBlackoutDates(data.map((d) => parseISO(d)));
+        setBlackoutDates(data.map((d: string) => parseISO(d)));
       } catch (err) {
-        console.error("Failed to load blackout dates", err);
+        console.error("Failed to fetch blackout dates", err);
       }
-    };
-    getBlackout();
+    }
+    getBlackoutDates();
   }, []);
 
-  /* -------------------- Booked Slots -------------------- */
+  /* -------------------- Fetch Booked Slots -------------------- */
   useEffect(() => {
     if (!date) return;
 
-    const formattedDate = format(date, "yyyy-MM-dd");
-    fetchBookedSlots(formattedDate)
-      .then((data) => setBookedSlots(data))
-      .catch((err) => console.error("Failed to fetch slots", err));
+    async function getBookedSlots() {
+      try {
+        if (!date) return;
+        const formattedDate = format(date, "yyyy-MM-dd");
+
+        const slots = await fetchBookedSlots(formattedDate);
+        setBookedSlots(slots);
+      } catch (err) {
+        console.error("Failed to fetch booked slots", err);
+      }
+    }
+
+    getBookedSlots();
   }, [date]);
 
-  /* -------------------- Go to Review Page -------------------- */
+  /* -------------------- Handle Next (Go to Confirmation) -------------------- */
   const handleNext = () => {
-    if (!date || !selectedTime || !form.name || !form.email) return;
+    if (!date || !selectedTime || !form.name || !form.email || !form.phone) {
+      alert("Please fill in all required fields and select a time.");
+      return;
+    }
 
     const bookingData = {
       service: {
@@ -87,7 +105,7 @@ export default function BookingForm({
         title: service.title,
         price: service.price,
       },
-      addons: selectedAddons.length ? selectedAddons : undefined,
+      addons: selectedAddons.length > 0 ? selectedAddons : [],
       totalPrice,
       customer: form,
       date: format(date, "yyyy-MM-dd"),
@@ -99,7 +117,7 @@ export default function BookingForm({
     );
   };
 
-  /* ==================== UI ==================== */
+  /* -------------------- Render -------------------- */
   return (
     <div className="w-full max-w-5xl mx-auto p-6 border-2 border-[#A30A24] bg-white text-[#A30A24]">
       <div className="flex flex-col gap-4">
@@ -185,7 +203,7 @@ export default function BookingForm({
         <div className="grid grid-cols-2 gap-4">
           {/* Left: Name, Email, Phone */}
           <div className="flex flex-col gap-4">
-            <div>
+            <div className="flex flex-col">
               <label className="text-[16px] md:text-[18px] font-medium mb-1">
                 Full Name
               </label>
@@ -199,7 +217,7 @@ export default function BookingForm({
               />
             </div>
 
-            <div>
+            <div className="flex flex-col">
               <label className="text-[16px] md:text-[18px] font-medium mb-1">
                 Contact Number
               </label>
@@ -217,7 +235,7 @@ export default function BookingForm({
               />
             </div>
 
-            <div>
+            <div className="flex flex-col">
               <label className="text-[16px] md:text-[18px] font-medium mb-1">
                 Email Address
               </label>
@@ -235,7 +253,9 @@ export default function BookingForm({
           {/* Right: Description */}
           <div className="flex flex-col">
             <label className="text-[16px] md:text-[18px] font-medium mb-1">
-              Additional Details
+              Please provide any additional details, ideas, specifications, or
+              requirements that will assist us in better understanding and
+              visualizing your vision.
             </label>
             <textarea
               placeholder="Tell us about your event..."
@@ -254,11 +274,10 @@ export default function BookingForm({
               Selected: {date ? format(date, "PPPP") : "None"}{" "}
               {selectedTime && `@ ${selectedTime}`}
             </p>
-
             <button
               type="button"
               onClick={handleNext}
-              className="w-full h-12 bg-black text-white font-bold"
+              className="w-full h-12 bg-[#A30A24] text-white font-bold"
             >
               Review Booking
             </button>
