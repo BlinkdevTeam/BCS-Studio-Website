@@ -261,3 +261,25 @@ export const I = {
 // ─── Status Badges ────────────────────────────────────────────────────────────
 export const SB = { Confirmed: "bg-emerald-100 text-emerald-700 border border-emerald-200", Pending: "bg-amber-100 text-amber-700 border border-amber-200" };
 export const SD = { Confirmed: "bg-emerald-500", Pending: "bg-amber-400" };
+
+export const STRIPE_SOFT = "repeating-linear-gradient(45deg,#ede0e2,#ede0e2 2px,#f8f1f2 2px,#f8f1f2 8px)";
+export const STRIPE_HARD = "repeating-linear-gradient(45deg,#c5a5aa,#c5a5aa 2.5px,#d8b5ba 2.5px,#d8b5ba 8px)";
+
+export const inp = "w-full px-3 py-2 rounded-lg text-xs border outline-none transition-all focus:border-[#A30A24] focus:ring-1 focus:ring-[#A30A24]/20";
+export const inpSty = { borderColor: "#e5d5d8", background: "#fdfafa" };
+
+export const getCellBg = (ds, status, sel) => {
+    if (!ds) return "#fafafa";
+    if (status === "past") return "#faf7f7";
+    if (status === "blocked-manual") return null; // uses gradient
+    if (isBlocked(status)) return null; // uses gradient
+    if (sel) return "#A30A24";
+    if (isToday(ds)) return "#fff";
+    const bk = bookingsByDate[ds] || [];
+    if (bk.length > 0) return "#FEF0F2";
+    if (timeBlocks.some(t => t.date === ds)) return "#fffbf0";
+    return "#fff";
+};
+  
+export const isBlocked = (s) => s.startsWith("blocked");
+export const isOverridable = (s) => ["blocked-range","blocked-dayoff","blocked-weekend"].includes(s);

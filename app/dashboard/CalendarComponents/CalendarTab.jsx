@@ -7,7 +7,7 @@ import {
   TODAY_D,
   // SEED,
   parseD,
-  addDays,
+  // addDays,
   MONTH_NAMES,
   Ic,
   I,
@@ -15,6 +15,11 @@ import {
   displayShort,
   SB,
   SD,
+  STRIPE_SOFT,
+  STRIPE_HARD,
+  // getCellBg,
+  // isBlocked,
+  inpSty,
 } from "../data/compData";
 import Toggle from "./Toggle";
 
@@ -32,27 +37,22 @@ const TIME_OPTIONS = Array.from({ length: 24 * 4 }, (_, i) => {
 });
 
 export default function CalendarTab() {
-  const now = new Date();
+   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
   const [selectedDate, setSelectedDate] = useState(TODAY);
+  
   const [rightTab, setRightTab] = useState("day");
 
   const [bookings, setBookings] = useState([]);
-
-  // Availability
-  const [weekendsBlocked, setWeekendsBlocked] = useState(true);
-  const [dayOffsBlocked, setDayOffsBlocked] = useState(new Set());
   const [blockedDates, setBlockedDates] = useState(new Set());
+  const [blockedRanges, setBlockedRanges] = useState([]);
+  const [timeBlocks, setTimeBlocks] = useState([]);
   const [openDates, setOpenDates] = useState(new Set());
-  const [blockedRanges, setBlockedRanges] = useState([
-    { id: "r1", start: formatDate(addDays(TODAY_D, 35)), end: formatDate(addDays(TODAY_D, 38)), label: "Out of Town" },
-  ]);
-  const [timeBlocks, setTimeBlocks] = useState([
-    { id: "t1", date: formatDate(addDays(TODAY_D, 7)), startTime: "12:00 PM", endTime: "01:30 PM", label: "Lunch Break" },
-  ]);
+  const [dayOffsBlocked, setDayOffsBlocked] = useState(new Set());
+  const [weekendsBlocked, setWeekendsBlocked] = useState(true);
 
-  // Form
+  // Form state
   const [blockMode, setBlockMode] = useState("date");
   const [blockDate, setBlockDate] = useState("");
   const [rangeStart, setRangeStart] = useState("");
@@ -64,55 +64,75 @@ export default function CalendarTab() {
   const [timeLabel, setTimeLabel] = useState("");
   const [msg, setMsg] = useState({ text: "", ok: true });
 
-  const flash = (text, ok = true) => { setMsg({ text, ok }); setTimeout(() => setMsg({ text: "", ok: true }), 2800); };
+  const flash = (text, ok = true) => {
+    setMsg({ text, ok });
+    setTimeout(() => setMsg({ text: "", ok: true }), 2800);
+  };
 
   // --- Helpers ---
   function formatDate(d) {
     const dt = typeof d === "string" ? new Date(d) : d;
     const tzOffset = dt.getTimezoneOffset() * 60000;
-    return new Date(dt - tzOffset).toISOString().split("T")[0]; // YYYY-MM-DD local
+    return new Date(dt - tzOffset).toISOString().split("T")[0]; // YYYY-MM-DD
   }
 
   const isPast = (d) => formatDate(d) < formatDate(TODAY_D);
   const isToday = (d) => formatDate(d) === formatDate(TODAY_D);
 
-  // Bookings map
+  // Bookings grouped by date
   const bookingsByDate = useMemo(() => {
-  const m = {};
-  bookings.forEach(b => {
-    (m[b.date] = m[b.date] || []).push(b);
-  });
-  return m;
-}, [bookings]);
+    const m = {};
+    bookings.forEach((b) => {
+      (m[b.date] = m[b.date] || []).push(b);
+    });
+    return m;
+  }, [bookings]);
 
+  // --- Fetch bookings and blocked dates/ranges/time blocks ---
   useEffect(() => {
-  const fetchBookings = async () => {
-    try {
-      const res = await fetch("/api/bookings"); // your backend endpoint
-      const data = await res.json();
+    const fetchData = async () => {
+      try {
+        // Bookings
+        const bookingsRes = await fetch("/api/bookings");
+        const bookingsData = await bookingsRes.json();
+        setBookings(
+          bookingsData.map((b) => ({
+            ...b,
+            date: formatDate(b.date),
+          }))
+        );
 
-      const normalized = data.map(b => ({
-        ...b,
-        date: formatDate(b.date), // fix timezone issues
-      }));
+        // Blocked dates, ranges, time blocks
+        const calendarRes = await fetch("/api/calendar");
+        const calendarData = await calendarRes.json();
 
-      setBookings(normalized);
-    } catch (err) {
-      console.error("Failed to fetch bookings:", err);
-    }
-  };
-
-  fetchBookings();
-}, []);
-
+        setBlockedDates(new Set(calendarData.blockedDates.map((b) => formatDate(b.date))));
+        setBlockedRanges(
+          calendarData.blockedRanges.map((r) => ({
+            ...r,
+            start: formatDate(r.start_date),
+            end: formatDate(r.end_date),
+          }))
+        );
+        setTimeBlocks(
+          calendarData.timeBlocks.map((t) => ({
+            ...t,
+            date: formatDate(t.date),
+          }))
+        );
+      } catch (err) {
+        console.error("Failed to fetch calendar data:", err);
+      }
+    };
+    fetchData();
+  }, []);
 
   // ----------------------------
-  // Date status
+  // Status helpers
   // ----------------------------
   const getStatus = useCallback(
     (s) => {
       if (!s) return "available";
-
       const d = parseD(s);
       if (!d) return "available";
 
@@ -131,16 +151,7 @@ export default function CalendarTab() {
 
       return "available";
     },
-    [
-      blockedDates,
-      blockedRanges,
-      openDates,
-      dayOffsBlocked,
-      weekendsBlocked,
-      isPast,
-      isToday,
-      parseD
-    ]
+    [blockedDates, blockedRanges, openDates, dayOffsBlocked, weekendsBlocked, isPast, isToday]
   );
 
   const isBlocked = (s) => s.startsWith("blocked");
@@ -148,67 +159,182 @@ export default function CalendarTab() {
     ["blocked-range", "blocked-dayoff", "blocked-weekend"].includes(s);
 
   // ----------------------------
-  // Calendar cells
+  // Calendar generation
   // ----------------------------
   const calDays = useMemo(() => {
     const first = new Date(viewYear, viewMonth, 1);
     const last = new Date(viewYear, viewMonth + 1, 0);
     const cells = [];
 
-    // Empty slots before first day
     for (let i = 0; i < first.getDay(); i++) cells.push(null);
 
-    // Days of the month
     for (let d = 1; d <= last.getDate(); d++) {
       cells.push(formatDate(new Date(viewYear, viewMonth, d)));
     }
 
-    // Fill last week to complete 7 days
     while (cells.length % 7 !== 0) cells.push(null);
 
     return cells;
-  }, [viewYear, viewMonth, formatDate]); // include formatDate here
+  }, [viewYear, viewMonth]);
 
-
-  const prevMonth = () => viewMonth === 0 ? (setViewMonth(11), setViewYear(y => y - 1)) : setViewMonth(m => m - 1);
-  const nextMonth = () => viewMonth === 11 ? (setViewMonth(0), setViewYear(y => y + 1)) : setViewMonth(m => m + 1);
-  const goToday = () => { setViewYear(now.getFullYear()); setViewMonth(now.getMonth()); setSelectedDate(formatDate(TODAY_D)); };
-
-  const handleDayClick = (ds) => { if (!ds) return; if (getStatus(ds) === "past") return; setSelectedDate(ds); setRightTab("day"); };
-
-  // Block actions
-  const addBlockDate = () => { if (!blockDate) return flash("Please select a date.", false); if (isPast(blockDate)) return flash("Cannot block a past date.", false); setBlockedDates(p => new Set([...p, blockDate])); setOpenDates(p => { const s = new Set(p); s.delete(blockDate); return s; }); setBlockDate(""); flash("Date blocked successfully."); };
-  const addBlockRange = () => { if (!rangeStart || !rangeEnd) return flash("Fill both dates.", false); if (rangeStart > rangeEnd) return flash("Start must be before end.", false); setBlockedRanges(p => [...p, { id: uid(), start: rangeStart, end: rangeEnd, label: rangeLabel || "Blocked Range" }]); setRangeStart(""); setRangeEnd(""); setRangeLabel(""); flash("Date range blocked."); };
-  const addTimeBlock = () => { if (!timeDate) return flash("Please select a date.", false); if (isPast(timeDate)) return flash("Cannot block a past date.", false); setTimeBlocks(p => [...p, { id: uid(), date: timeDate, startTime: timeStart, endTime: timeEnd, label: timeLabel || "Time Block" }]); setTimeDate(""); setTimeLabel(""); flash("Time block added."); };
-  const removeBlockedDate = (d) => setBlockedDates(p => { const s = new Set(p); s.delete(d); return s; });
-  const removeRange = (id) => setBlockedRanges(p => p.filter(r => r.id !== id));
-  const removeTimeBlock = (id) => setTimeBlocks(p => p.filter(t => t.id !== id));
-  const openDate = (d) => setOpenDates(p => new Set([...p, d]));
-  const closeDate = (d) => setOpenDates(p => { const s = new Set(p); s.delete(d); return s; });
-  const manualBlock = (d) => { setBlockedDates(p => new Set([...p, d])); setOpenDates(p => { const s = new Set(p); s.delete(d); return s; }); };
-  const toggleDayOff = (i) => setDayOffsBlocked(p => { const s = new Set(p); s.has(i) ? s.delete(i) : s.add(i); return s; });
-
-  // Cell rendering
-  const getCellBg = (ds, status, sel) => {
-    if (!ds) return "#fafafa";
-    if (status === "past") return "#faf7f7";
-    if (status === "blocked-manual") return null; // uses gradient
-    if (isBlocked(status)) return null; // uses gradient
-    if (sel) return "#A30A24";
-    if (isToday(ds)) return "#fff";
-    const bk = bookingsByDate[ds] || [];
-    if (bk.length > 0) return "#FEF0F2";
-    if (timeBlocks.some(t => t.date === ds)) return "#fffbf0";
-    return "#fff";
+  // ----------------------------
+  // Calendar actions
+  // ----------------------------
+  const prevMonth = () =>
+    viewMonth === 0 ? (setViewMonth(11), setViewYear((y) => y - 1)) : setViewMonth((m) => m - 1);
+  const nextMonth = () =>
+    viewMonth === 11 ? (setViewMonth(0), setViewYear((y) => y + 1)) : setViewMonth((m) => m + 1);
+  const goToday = () => {
+    setViewYear(now.getFullYear());
+    setViewMonth(now.getMonth());
+    setSelectedDate(formatDate(TODAY_D));
+  };
+  const handleDayClick = (ds) => {
+    if (!ds) return;
+    if (getStatus(ds) === "past") return;
+    setSelectedDate(ds);
+    setRightTab("day");
   };
 
-  const STRIPE_SOFT = "repeating-linear-gradient(45deg,#ede0e2,#ede0e2 2px,#f8f1f2 2px,#f8f1f2 8px)";
-  const STRIPE_HARD = "repeating-linear-gradient(45deg,#c5a5aa,#c5a5aa 2.5px,#d8b5ba 2.5px,#d8b5ba 8px)";
+  // ----------------------------
+  // Add/Remove blocks
+  // ----------------------------
+  const addBlockDate = async () => {
+  if (!blockDate) return flash("Please select a date.", false);
+  if (isPast(blockDate)) return flash("Cannot block a past date.", false);
 
-  const inp = "w-full px-3 py-2 rounded-lg text-xs border outline-none transition-all focus:border-[#A30A24] focus:ring-1 focus:ring-[#A30A24]/20";
-  const inpSty = { borderColor: "#e5d5d8", background: "#fdfafa" };
+  try {
+    const res = await fetch("/api/calendar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "date", date: blockDate, label: "Manual Block" }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to block date");
 
-  // Selected date data
+    setBlockedDates(prev => new Set([...prev, blockDate]));
+    setBlockDate("");
+    flash("Date blocked successfully.");
+  } catch (err) {
+    console.error(err);
+    flash(err.message, false);
+  }
+};
+
+  const addBlockRange = () => {
+    if (!rangeStart || !rangeEnd) return flash("Fill both dates.", false);
+    if (rangeStart > rangeEnd) return flash("Start must be before end.", false);
+    setBlockedRanges((p) => [...p, { id: uid(), start: rangeStart, end: rangeEnd, label: rangeLabel || "Blocked Range" }]);
+    setRangeStart("");
+    setRangeEnd("");
+    setRangeLabel("");
+    flash("Date range blocked.");
+  };
+
+const addTimeBlock = async (timeBlock) => {
+  try {
+    const res = await fetch("/api/calendar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "time", ...timeBlock }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to add time block");
+    
+    setTimeBlocks(prev => [...prev, { ...timeBlock }]);
+    flash("Time block added.");
+  } catch (err) {
+    console.error(err);
+    flash(err.message, false);
+  }
+};
+
+  const removeBlockedDate = async (date) => {
+  try {
+    const res = await fetch("/api/calendar", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "date", date }),
+    });
+
+    if (!res.ok) throw new Error("Failed to remove block");
+
+    // Update state immediately
+    setBlockedDates(prev => {
+      const s = new Set(prev);
+      s.delete(date);
+      return s;
+    });
+
+    // Optionally, reset selection status
+    setSelStatus("available");
+
+  } catch (err) {
+    console.error(err);
+    flash(err.message, false);
+  }
+};
+  
+  const removeRange = (id) => setBlockedRanges((p) => p.filter((r) => r.id !== id));
+
+ const removeTimeBlock = async (id) => {
+  try {
+    const res = await fetch("/api/calendar", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "time", id }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to remove time block");
+
+    setTimeBlocks(prev => prev.filter(t => t.id !== id));
+    flash("Time block removed.");
+  } catch (err) {
+    console.error(err);
+    flash(err.message, false);
+  }
+  };
+  
+  const openDate = (d) => setOpenDates((p) => new Set([...p, d]));
+  const closeDate = (d) => setOpenDates((p) => { const s = new Set(p); s.delete(d); return s; });
+  const manualBlock = async (d) => {
+  if (!d) return flash("No date selected.", false);
+  if (isPast(d)) return flash("Cannot block a past date.", false);
+
+  try {
+    const res = await fetch("/api/calendar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "date", date: d, label: "Manual Block" }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to block date");
+
+    // Update frontend state
+    setBlockedDates((p) => new Set([...p, d]));
+    setOpenDates((p) => { const s = new Set(p); s.delete(d); return s; });
+    setSelStatus("blocked-manual"); // update status immediately
+    flash("Date blocked successfully.");
+  } catch (err) {
+    console.error(err);
+    flash(err.message, false);
+  }
+};
+  const toggleDayOff = (i) => setDayOffsBlocked((p) => { const s = new Set(p); s.has(i) ? s.delete(i) : s.add(i); return s; });
+
+  const getCellBg = (ds, status, sel) => {
+      if (!ds) return "#fafafa";
+      if (status === "past") return "#faf7f7";
+      if (status === "blocked-manual") return null; // uses gradient
+      if (isBlocked(status)) return null; // uses gradient
+      if (sel) return "#A30A24";
+      if (isToday(ds)) return "#fff";
+      const bk = bookingsByDate[ds] || [];
+      if (bk.length > 0) return "#FEF0F2";
+      if (timeBlocks.some(t => t.date === ds)) return "#fffbf0";
+      return "#fff";
+  };
+
   const selStatus = getStatus(selectedDate);
   const selBookings = bookingsByDate[selectedDate] || [];
   const selTimeBlocks = timeBlocks.filter(t => t.date === selectedDate);
@@ -395,15 +521,49 @@ export default function CalendarTab() {
 
                 {/* Date card */}
                 <div className="rounded-xl p-4" style={{ background: "#FEF0F2" }}>
-                  <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "#A30A24" }}>Selected Date</p>
-                  <p className="font-bold text-sm leading-snug" style={{ color: "#1a0a0d", fontFamily: "'Georgia',serif" }}>{displayDate(selectedDate)}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "#A30A24" }}>
+                    Selected Date
+                  </p>
+
+                  <p
+                    className="font-bold text-sm leading-snug"
+                    style={{ color: "#1a0a0d", fontFamily: "'Georgia',serif" }}
+                  >
+                    {displayDate(selectedDate)}
+                  </p>
+
                   <div className="flex flex-wrap gap-1.5 mt-2.5">
-                    {isToday(selectedDate) && <span className="text-[10px] px-2 py-0.5 rounded-full font-bold text-white" style={{ background: "#A30A24" }}>Today</span>}
-                    {selStatus === "past" && <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "#f0e0e3", color: "#9a6a72" }}>Past</span>}
-                    {isBlocked(selStatus) && <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-red-100 text-red-700">Blocked</span>}
-                    {!isBlocked(selStatus) && !isPast(selectedDate) && <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-700">Available</span>}
-                    {selIsOpen && <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-700">Opened</span>}
-                  </div>
+                    {isToday(selectedDate) && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold text-white" style={{ background: "#A30A24" }}>
+                        Today
+                      </span>
+                    )}
+
+                    {selStatus === "past" && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold" style={{ background: "#f0e0e3", color: "#9a6a72" }}>
+                        Past
+                      </span>
+                    )}
+
+                    {isBlocked(selStatus) && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-red-100 text-red-700">
+                        Blocked
+                      </span>
+                    )}
+
+                    {!isBlocked(selStatus) && !isPast(selectedDate) && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-700">
+                        Available
+                      </span>
+                    )}
+
+                    {selIsOpen && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-700">
+                        Opened
+                      </span>
+                    )}
+
+                  </div>    
                 </div>
 
                 {/* Block reason */}
@@ -428,33 +588,52 @@ export default function CalendarTab() {
                 {/* Quick actions */}
                 {!isPast(selectedDate) && (
                   <div className="space-y-2">
-                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#7a4a50" }}>Quick Actions</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#7a4a50" }}>
+                      Quick Actions
+                    </p>
+
                     <div className="flex flex-col gap-2">
+
+                      {/* Block */}
                       {!isBlocked(selStatus) && (
-                        <button onClick={() => manualBlock(selectedDate)}
+                        <button
+                          onClick={async () => await manualBlock(selectedDate)}
                           className="w-full py-2 px-3 rounded-lg text-xs font-semibold border flex items-center justify-center gap-1.5 hover:bg-red-50 transition-colors"
-                          style={{ borderColor: "#A30A24", color: "#A30A24" }}>
+                          style={{ borderColor: "#A30A24", color: "#A30A24" }}
+                        >
                           <Ic d={I.lock} size={12} sw={2.5} /> Block This Day
                         </button>
                       )}
+
+                      {/* Unblock */}
                       {selStatus === "blocked-manual" && (
-                        <button onClick={() => removeBlockedDate(selectedDate)}
+                        <button
+                          onClick={() => removeBlockedDate(selectedDate)}
                           className="w-full py-2 px-3 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1.5"
-                          style={{ background: "#059669" }}>
+                          style={{ background: "#059669" }}
+                        >
                           <Ic d={I.unlock} size={12} sw={2.5} stroke="#fff" /> Unblock Day
                         </button>
                       )}
+
+                      {/* Override */}
                       {isOverridable(selStatus) && !selIsOpen && (
-                        <button onClick={() => openDate(selectedDate)}
+                        <button
+                          onClick={() => openDate(selectedDate)}
                           className="w-full py-2 px-3 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1.5"
-                          style={{ background: "#059669" }}>
+                          style={{ background: "#059669" }}
+                        >
                           <Ic d={I.unlock} size={12} sw={2.5} stroke="#fff" /> Open This Day (Exception)
                         </button>
                       )}
+
+                      {/* Re-block */}
                       {selIsOpen && (
-                        <button onClick={() => closeDate(selectedDate)}
+                        <button
+                          onClick={() => closeDate(selectedDate)}
                           className="w-full py-2 px-3 rounded-lg text-xs font-semibold border flex items-center justify-center gap-1.5 hover:bg-red-50 transition-colors"
-                          style={{ borderColor: "#dc2626", color: "#dc2626" }}>
+                          style={{ borderColor: "#dc2626", color: "#dc2626" }}
+                        >
                           <Ic d={I.lock} size={12} sw={2.5} /> Re-block Day
                         </button>
                       )}
@@ -482,11 +661,11 @@ export default function CalendarTab() {
                               </span>
                             </div>
                             <p className="text-xs font-bold" style={{ color: "#1a0a0d" }}> {typeof b.customer === "object"
-    ? b.customer?.name
-    : b.customer}</p>
+                              ? b.customer?.name
+                              : b.customer}</p>
                             <p className="text-[10px] mt-0.5" style={{ color: "#9a6a72" }}> {typeof b.service === "object"
-    ? b.service?.title
-    : b.service}</p>
+                              ? b.service?.title
+                              : b.service}</p>
                             <p className="text-[10px] mt-0.5 flex items-center gap-1" style={{ color: "#b0707a" }}>
                               <Ic d={I.clock} size={10} stroke="#b0707a" sw={2} /> {b.time}
                             </p>
