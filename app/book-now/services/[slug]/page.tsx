@@ -35,7 +35,7 @@ export default function ServicePage({ params }: Props) {
   return (
     <section className="px-6 lg:px-24 py-24 bg-white">
       <div className="grid grid-cols-2 gap-4">
-        <div className="border-2 border-[#A30A24] w-full h-fit p-8 text-[#161616]">
+        <div className="border-2 border-[#A30A24] w-full h-fit p-8 text-[#191919]">
           <h1 className="text-[24px] md:text-[36px] font-bold mb-6">
             {service.title}
           </h1>

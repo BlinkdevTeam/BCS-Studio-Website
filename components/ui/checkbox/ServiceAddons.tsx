@@ -25,7 +25,7 @@ export default function ServiceAddons({
   };
 
   return (
-    <div className="mt-8 text-[#161616]">
+    <div className="mt-8 text-[#191919]">
       <h3 className="text-[20px] md:text-[24px] font-bold mb-4">
         Add-ons (optional)
       </h3>

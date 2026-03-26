@@ -9,7 +9,7 @@ export default function CurrentPromo() {
         <h1 className="text-[48px] md:text-[72px] text-[#A30A24] font-bold">
           Current Promotions
         </h1>
-        <p className="max-w-4xl text-[20px] md:text-[32px] text-[#6E6E6E]">
+        <p className="max-w-4xl text-[20px] md:text-[32px] text-[#808080]">
           Take a glimpse into our creative process and studio environment
         </p>
       </div>
@@ -27,10 +27,10 @@ export default function CurrentPromo() {
             {/* Content */}
             <div className="flex flex-col gap-6 p-12">
               <div>
-                <h4 className="text-[36px] md:text-[48px] text-[#161616] font-bold">
+                <h4 className="text-[36px] md:text-[48px] text-[#191919] font-bold">
                   {promo.title}
                 </h4>
-                <p className="text-[18px] md:text-[24px] text-[#6E6E6E] mt-2">
+                <p className="text-[18px] md:text-[24px] text-[#808080] mt-2">
                   {promo.description}
                 </p>
               </div>
@@ -39,7 +39,7 @@ export default function CurrentPromo() {
                 <h4 className="text-[36px] md:text-[48px] font-bold text-[#A30A24]">
                   {promo.discount}
                 </h4>
-                <p className="text-[18px] md:text-[24px] text-[#6E6E6E]">
+                <p className="text-[18px] md:text-[24px] text-[#808080]">
                   {promo.validUntil}
                 </p>
               </div>

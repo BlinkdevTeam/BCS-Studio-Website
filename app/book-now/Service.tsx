@@ -73,7 +73,7 @@ export default function ServiceSection() {
 
             <div className="flex flex-col gap-4 p-8">
               <div className="flex flex-row justify-between">
-                <h4 className="text-[24px] md:text-[36px] text-[#161616] font-bold">
+                <h4 className="text-[24px] md:text-[36px] text-[#191919] font-bold">
                   {service.title}
                 </h4>
                 {service.price && (
@@ -83,7 +83,7 @@ export default function ServiceSection() {
                 )}
               </div>
               {service.desc && (
-                <p className="text-[18px] md:text-[24px] text-[#6E6E6E] mt-2">
+                <p className="text-[18px] md:text-[24px] text-[#808080] mt-2">
                   {service.desc}
                 </p>
               )}

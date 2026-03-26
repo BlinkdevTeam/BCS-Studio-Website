@@ -7,16 +7,16 @@ export default function PhotoContest() {
       <section className="bg-[#F2F2F2] flex flex-col p-8 md:p-20 overflow-hidden">
         <div className="flex flex-col justify-center items-center gap-12 border-4 border-[#A30A24] text-white py-28 px-6">
           <div className="max-w-320 w-full flex flex-col justify-center items-center mx-auto text-center">
-            <h1 className="text-[48px] md:text-[72px] text-[#161616] font-extrabold">
+            <h1 className="text-[48px] md:text-[72px] text-[#191919] font-extrabold">
               Photo Contents
             </h1>
             <div className="w-fit">
-              <p className="text-[24px] md:text-[36px] text-[#6E6E6E]">
+              <p className="text-[24px] md:text-[36px] text-[#808080]">
                 Submit your best photograph for a chance to win amazing prizes!
                 Theme: &quot;Moments of Joy&quot;
               </p>
             </div>
-            <h4 className="text-[36px] md:text-[48px] text-[#161616] font-bold">
+            <h4 className="text-[36px] md:text-[48px] text-[#191919] font-bold">
               Grand Prize: P500 + Free Portrait Session
             </h4>
           </div>
