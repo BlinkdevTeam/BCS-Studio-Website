@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { parseLocalDateTime, formatDateTime } from "../../../utils/dateUtils";
 import {
-  SEED_BOOKINGS,
   Icon,
   Icons,
   fmtPrice,
@@ -17,6 +16,7 @@ import ViewBooking from "./ViewBooking";
 import DeleteConfirm from "./DeleteConfirm";
 
 import CalendarTab from "../CalendarComponents/CalendarTab";
+import PackagesTab from "../PackagesComponents/PackagesTab";
 
 // ── Helper to format date + time ──
 
@@ -169,6 +169,7 @@ export default function BookingsDashboard() {
           {[
             { label: "Bookings", icon: Icons.bookings },
             { label: "Calendar", icon: Icons.calendar },
+            { label: "Packages", icon: Icons.package },
           ].map((item) => (
             <button
               key={item.label}
@@ -211,21 +212,23 @@ export default function BookingsDashboard() {
         <main className="flex-1 overflow-y-auto px-7 py-6 space-y-6">
           {activeTab === "Calendar" ? (
             // CalendarTab bookings prop mapping
-<CalendarTab
-  bookings={bookings.map((b) => {
-    const dt = parseLocalDateTime(b.date, b.time);
+            <CalendarTab
+              bookings={bookings.map((b) => {
+                const dt = parseLocalDateTime(b.date, b.time);
 
-    return {
-      id: b.id,
-      status: b.status,
-      customer: b.customer?.name || "Unknown",
-      service: b.service?.title || "Service",
-      date: dt.toISOString().slice(0, 10), // YYYY-MM-DD
-      time: dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    };
-  })}
-/>
-          ) : (
+                return {
+                  id: b.id,
+                  status: b.status,
+                  customer: b.customer?.name || "Unknown",
+                  service: b.service?.title || "Service",
+                  date: dt.toISOString().slice(0, 10), // YYYY-MM-DD
+                  time: dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                };
+              })}
+            />
+          )  : activeTab === "Packages" ? (
+    <PackagesTab />
+  ) : (
             <div className="space-y-6">
               <div
                 className="flex items-center justify-between px-7 py-4 bg-white border-b"
@@ -444,10 +447,10 @@ export default function BookingsDashboard() {
                               )}
                             </td>
                             <td className="px-6 py-4">
-  <p className="text-xs font-medium" style={{ color: "#1a0a0d" }}>
-    {formatDateTime(parseLocalDateTime(b.date, b.time))}
-  </p>
-</td>
+                              <p className="text-xs font-medium" style={{ color: "#1a0a0d" }}>
+                                {formatDateTime(parseLocalDateTime(b.date, b.time))}
+                              </p>
+                            </td>
                             <td className="px-6 py-4">
                               <span
                                 className="font-bold text-xs"

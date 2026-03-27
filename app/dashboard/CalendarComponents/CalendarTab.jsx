@@ -20,16 +20,17 @@ import {
   // getCellBg,
   // isBlocked,
   inpSty,
+  inp,
 } from "../data/compData";
-import Toggle from "./Toggle";
+import Toggle from "../components/Toggle";
 
 // Generate unique IDs for ranges/blocks
 const uid = () => Math.random().toString(36).substr(2, 9);
 
 // Time options for time blocks
-const TIME_OPTIONS = Array.from({ length: 24 * 4 }, (_, i) => {
-  const h = Math.floor(i / 4);
-  const m = (i % 4) * 15;
+const TIME_OPTIONS = Array.from({ length: 24 * 2 }, (_, i) => {
+  const h = Math.floor(i / 2);
+  const m = (i % 2) * 30;
   const hour = h % 12 === 0 ? 12 : h % 12;
   const ampm = h < 12 ? "AM" : "PM";
   const min = m.toString().padStart(2, "0");
@@ -106,7 +107,10 @@ export default function CalendarTab() {
         const calendarRes = await fetch("/api/calendar");
         const calendarData = await calendarRes.json();
 
-        setBlockedDates(new Set(calendarData.blockedDates.map((b) => formatDate(b.date))));
+        setBlockedDates(
+          new Set(calendarData.blockedDates.map((b) => formatDate(b.date)))
+        );
+
         setBlockedRanges(
           calendarData.blockedRanges.map((r) => ({
             ...r,
@@ -114,11 +118,17 @@ export default function CalendarTab() {
             end: formatDate(r.end_date),
           }))
         );
+
         setTimeBlocks(
           calendarData.timeBlocks.map((t) => ({
             ...t,
             date: formatDate(t.date),
           }))
+        );
+
+        // ✅ ADD THIS (VERY IMPORTANT)
+        setOpenDates(
+          new Set(calendarData.openDates.map((o) => formatDate(o.date)))
         );
       } catch (err) {
         console.error("Failed to fetch calendar data:", err);
@@ -200,80 +210,115 @@ export default function CalendarTab() {
   // Add/Remove blocks
   // ----------------------------
   const addBlockDate = async () => {
-  if (!blockDate) return flash("Please select a date.", false);
-  if (isPast(blockDate)) return flash("Cannot block a past date.", false);
+    if (!blockDate) return flash("Please select a date.", false);
+    if (isPast(blockDate)) return flash("Cannot block a past date.", false);
 
-  try {
-    const res = await fetch("/api/calendar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "date", date: blockDate, label: "Manual Block" }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to block date");
+    try {
+      const res = await fetch("/api/calendar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "date", date: blockDate, label: "Manual Block" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to block date");
 
-    setBlockedDates(prev => new Set([...prev, blockDate]));
-    setBlockDate("");
-    flash("Date blocked successfully.");
-  } catch (err) {
-    console.error(err);
-    flash(err.message, false);
-  }
-};
-
-  const addBlockRange = () => {
-    if (!rangeStart || !rangeEnd) return flash("Fill both dates.", false);
-    if (rangeStart > rangeEnd) return flash("Start must be before end.", false);
-    setBlockedRanges((p) => [...p, { id: uid(), start: rangeStart, end: rangeEnd, label: rangeLabel || "Blocked Range" }]);
-    setRangeStart("");
-    setRangeEnd("");
-    setRangeLabel("");
-    flash("Date range blocked.");
+      setBlockedDates(prev => new Set([...prev, blockDate]));
+      setBlockDate("");
+      flash("Date blocked successfully.");
+    } catch (err) {
+      console.error(err);
+      flash(err.message, false);
+    }
   };
 
-const addTimeBlock = async (timeBlock) => {
-  try {
-    const res = await fetch("/api/calendar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "time", ...timeBlock }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to add time block");
-    
-    setTimeBlocks(prev => [...prev, { ...timeBlock }]);
-    flash("Time block added.");
-  } catch (err) {
-    console.error(err);
-    flash(err.message, false);
-  }
-};
+  const addBlockRange = async () => {
+    if (!rangeStart || !rangeEnd) return flash("Fill both dates.", false);
+    if (rangeStart > rangeEnd) return flash("Start must be before end.", false);
+
+    try {
+      const res = await fetch("/api/calendar", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "range",
+          start: rangeStart,
+          end: rangeEnd,
+          label: rangeLabel || "Blocked Range",
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to block range");
+
+      // ✅ Update frontend
+      setBlockedRanges((p) => [
+        ...p,
+        {
+          id: data.id || uid(),
+          start: rangeStart,
+          end: rangeEnd,
+          label: rangeLabel || "Blocked Range",
+        },
+      ]);
+
+      setRangeStart("");
+      setRangeEnd("");
+      setRangeLabel("");
+
+      flash("Date range blocked.");
+    } catch (err) {
+      console.error(err);
+      flash(err.message, false);
+    }
+  };
+
+  const addTimeBlock = async (timeBlock) => {
+    try {
+      const res = await fetch("/api/calendar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "time", ...timeBlock }), // now safe
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to add time block");
+
+      // Update frontend state
+      setTimeBlocks(prev => [...prev, { ...timeBlock, id: data.id || uid() }]);
+      flash("Time block added successfully.");
+    } catch (err) {
+      console.error(err);
+      flash(err.message, false);
+    }
+  };
 
   const removeBlockedDate = async (date) => {
-  try {
-    const res = await fetch("/api/calendar", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "date", date }),
-    });
+    try {
+      const res = await fetch("/api/calendar", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "date", date }),
+      });
 
-    if (!res.ok) throw new Error("Failed to remove block");
+      if (!res.ok) throw new Error("Failed to remove block");
 
-    // Update state immediately
-    setBlockedDates(prev => {
-      const s = new Set(prev);
-      s.delete(date);
-      return s;
-    });
+      // Update state immediately
+      setBlockedDates(prev => {
+        const s = new Set(prev);
+        s.delete(date);
+        return s;
+      });
 
-    // Optionally, reset selection status
-    setSelStatus("available");
+      // Optionally, reset selection status
+      setSelStatus("available");
 
-  } catch (err) {
-    console.error(err);
-    flash(err.message, false);
-  }
-};
+    } catch (err) {
+      console.error(err);
+      flash(err.message, false);
+    }
+  };
   
   const removeRange = (id) => setBlockedRanges((p) => p.filter((r) => r.id !== id));
 
@@ -295,31 +340,75 @@ const addTimeBlock = async (timeBlock) => {
   }
   };
   
-  const openDate = (d) => setOpenDates((p) => new Set([...p, d]));
-  const closeDate = (d) => setOpenDates((p) => { const s = new Set(p); s.delete(d); return s; });
+  const openDate = async (d) => {
+    if (!d) return flash("No date selected.", false);
+    if (isPast(d)) return flash("Cannot open a past date.", false);
+
+    try {
+      const res = await fetch("/api/calendar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "open", date: d }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to open date");
+
+      setOpenDates((p) => new Set([...p, d]));
+      flash("Date opened (exception) successfully.");
+    } catch (err) {
+      console.error(err);
+      flash(err.message, false);
+    }
+  };
+
+  const closeDate = async (d) => {
+    if (!d) return flash("No date selected.", false);
+
+    try {
+      const res = await fetch("/api/calendar", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "open", date: d }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to close date");
+
+      setOpenDates((p) => {
+        const s = new Set(p);
+        s.delete(d);
+        return s;
+      });
+      flash("Date exception removed, back to blocked.");
+    } catch (err) {
+      console.error(err);
+      flash(err.message, false);
+    }
+  };
   const manualBlock = async (d) => {
-  if (!d) return flash("No date selected.", false);
-  if (isPast(d)) return flash("Cannot block a past date.", false);
+    if (!d) return flash("No date selected.", false);
+    if (isPast(d)) return flash("Cannot block a past date.", false);
 
-  try {
-    const res = await fetch("/api/calendar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "date", date: d, label: "Manual Block" }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to block date");
+    try {
+      const res = await fetch("/api/calendar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "date", date: d, label: "Manual Block" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to block date");
 
-    // Update frontend state
-    setBlockedDates((p) => new Set([...p, d]));
-    setOpenDates((p) => { const s = new Set(p); s.delete(d); return s; });
-    setSelStatus("blocked-manual"); // update status immediately
-    flash("Date blocked successfully.");
-  } catch (err) {
-    console.error(err);
-    flash(err.message, false);
-  }
-};
+      // Update frontend state
+      setBlockedDates((p) => new Set([...p, d]));
+      setOpenDates((p) => { const s = new Set(p); s.delete(d); return s; });
+      setSelStatus("blocked-manual"); // update status immediately
+      flash("Date blocked successfully.");
+    } catch (err) {
+      console.error(err);
+      flash(err.message, false);
+    }
+  };
   const toggleDayOff = (i) => setDayOffsBlocked((p) => { const s = new Set(p); s.has(i) ? s.delete(i) : s.add(i); return s; });
 
   const getCellBg = (ds, status, sel) => {
@@ -340,6 +429,30 @@ const addTimeBlock = async (timeBlock) => {
   const selTimeBlocks = timeBlocks.filter(t => t.date === selectedDate);
   const selRange = blockedRanges.find(r => selectedDate >= r.start && selectedDate <= r.end);
   const selIsOpen = openDates.has(selectedDate);
+
+  const to24h = (t) => {
+  const [time, modifier] = t.split(" ");
+  let [hours, minutes] = time.split(":").map(Number);
+  if (modifier === "PM" && hours !== 12) hours += 12;
+  if (modifier === "AM" && hours === 12) hours = 0;
+  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:00`;
+  };
+  
+  const handleAddTimeBlock = async () => {
+    if (!timeDate || !timeStart || !timeEnd || !timeLabel) {
+      return flash("Please fill all fields", false);
+    }
+
+    // ✅ Make sure this is a plain object, no DOM or event
+    const block = {
+      date: timeDate,                  // YYYY-MM-DD
+      start_time: to24h(timeStart),    // "11:00:00"
+      end_time: to24h(timeEnd),        // "12:00:00"
+      label: timeLabel
+    };
+
+    await addTimeBlock(block);
+  };
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: "#f7f0f1", fontFamily: "'DM Sans','Segoe UI',sans-serif" }}>
@@ -594,7 +707,7 @@ const addTimeBlock = async (timeBlock) => {
 
                     <div className="flex flex-col gap-2">
 
-                      {/* Block */}
+                      {/* BLOCK (only if NOT blocked at all) */}
                       {!isBlocked(selStatus) && (
                         <button
                           onClick={async () => await manualBlock(selectedDate)}
@@ -605,7 +718,7 @@ const addTimeBlock = async (timeBlock) => {
                         </button>
                       )}
 
-                      {/* Unblock */}
+                      {/* UNBLOCK (ONLY for manual block) */}
                       {selStatus === "blocked-manual" && (
                         <button
                           onClick={() => removeBlockedDate(selectedDate)}
@@ -616,18 +729,18 @@ const addTimeBlock = async (timeBlock) => {
                         </button>
                       )}
 
-                      {/* Override */}
+                      {/* OPEN (for range, weekend, day-off) */}
                       {isOverridable(selStatus) && !selIsOpen && (
                         <button
                           onClick={() => openDate(selectedDate)}
                           className="w-full py-2 px-3 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1.5"
                           style={{ background: "#059669" }}
                         >
-                          <Ic d={I.unlock} size={12} sw={2.5} stroke="#fff" /> Open This Day (Exception)
+                          <Ic d={I.unlock} size={12} sw={2.5} stroke="#fff" /> Open This Day
                         </button>
                       )}
 
-                      {/* Re-block */}
+                      {/* RE-BLOCK (if opened exception) */}
                       {selIsOpen && (
                         <button
                           onClick={() => closeDate(selectedDate)}
@@ -637,6 +750,7 @@ const addTimeBlock = async (timeBlock) => {
                           <Ic d={I.lock} size={12} sw={2.5} /> Re-block Day
                         </button>
                       )}
+
                     </div>
                   </div>
                 )}
@@ -811,8 +925,11 @@ const addTimeBlock = async (timeBlock) => {
                         <label className="block text-[10px] font-bold mb-1 uppercase tracking-wider" style={{ color: "#7a3a42" }}>Label</label>
                         <input className={inp} style={inpSty} placeholder="e.g. Lunch Break, Reserved" value={timeLabel} onChange={e => setTimeLabel(e.target.value)} />
                       </div>
-                      <button onClick={addTimeBlock} className="w-full py-2 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1.5 hover:opacity-90"
-                        style={{ background: "#f59e0b" }}>
+                      <button
+                        onClick={handleAddTimeBlock} // cleaner
+                        className="w-full py-2 rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1.5 hover:opacity-90"
+                        style={{ background: "#f59e0b" }}
+                      >
                         <Ic d={I.clock} size={12} sw={2.5} stroke="#fff" /> Add Time Block
                       </button>
                     </div>
@@ -847,9 +964,9 @@ const addTimeBlock = async (timeBlock) => {
                                 <p className="text-[10px]" style={{ color: "#9a6a72" }}>{displayShort(d)}</p>
                               </div>
                             </div>
-                            <button onClick={() => removeBlockedDate(d)} className="w-6 h-6 rounded flex items-center justify-center hover:bg-red-100" style={{ color: "#A30A24" }}>
+                            {/* <button onClick={() => removeBlockedDate(d)} className="w-6 h-6 rounded flex items-center justify-center hover:bg-red-100" style={{ color: "#A30A24" }}>
                               <Ic d={I.close} size={11} sw={2.5} />
-                            </button>
+                            </button> */}
                           </div>
                         ))}
 

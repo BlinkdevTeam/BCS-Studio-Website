@@ -111,6 +111,7 @@ export const Icons = {
   filter: "M22 3H2l8 9.46V19l4 2v-8.54L22 3z",
   upload: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12",
   logo: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
+  package: "M4 6l8-4 8 4-8 4-8-4M4 6v12l8 4 8-4V6M12 10v12",
 };
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -283,3 +284,41 @@ export const getCellBg = (ds, status, sel) => {
   
 export const isBlocked = (s) => s.startsWith("blocked");
 export const isOverridable = (s) => ["blocked-range","blocked-dayoff","blocked-weekend"].includes(s);
+
+export const durLabel = (mins) => {
+  const opt = DURATION_OPTIONS.find(o => o.value === mins);
+  return opt ? opt.label : `${mins} min`;
+};
+
+export const DURATION_OPTIONS = [
+  { label: "30 minutes", value: 30 },
+  { label: "45 minutes", value: 45 },
+  { label: "1 hour", value: 60 },
+  { label: "1.5 hours", value: 90 },
+  { label: "2 hours", value: 120 },
+  { label: "2.5 hours", value: 150 },
+  { label: "3 hours", value: 180 },
+  { label: "4 hours", value: 240 },
+  { label: "Half-day (5 hrs)", value: 300 },
+  { label: "Full-day (8 hrs)", value: 480 },
+];
+
+export const EMPTY_PKG = {
+  id: "",
+  title: "",
+  description: "",
+  duration: 60,
+  price: "",
+  isActive: true,
+  color: "#A30A24",
+  inclusions: [],
+  addons: [],
+};
+
+export const labelCls = "block text-[10px] font-bold mb-1 uppercase tracking-wider";
+export const labelSty = { color: "#7a3a42" };
+
+export const ACCENT_COLORS = [
+  "#A30A24","#7a0a1e","#c41a3a","#b91c1c","#c2410c",
+  "#b45309","#15803d","#0e7490","#1d4ed8","#7c3aed",
+];

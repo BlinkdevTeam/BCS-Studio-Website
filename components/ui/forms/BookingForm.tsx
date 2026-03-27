@@ -1,14 +1,13 @@
-// components/ui/forms/BookingForm.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { format, parseISO, isSameDay } from "date-fns";
+import { format, parseISO, isSameDay, getDay } from "date-fns";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import { GrFormNext, GrFormPrevious } from "react-icons/gr";
 
-import { fetchBookedSlots, fetchBlackoutDates } from "@/lib/postgres/api";
+import { fetchBookedSlots, fetchCalendarData } from "@/lib/postgres/api";
 import type { Service, ServiceAddon } from "@/data/service";
 
 const TIME_SLOTS = [
@@ -41,6 +40,25 @@ interface FormData {
   description: string;
 }
 
+// Define this at the top of your BookingForm.tsx file
+interface CalendarData {
+  blockedDates: { id: number; date: string; label: string }[];
+  blockedRanges: {
+    id: number;
+    start_date: string;
+    end_date: string;
+    label: string;
+  }[];
+  timeBlocks: {
+    id: number;
+    date: string;
+    start_time: string;
+    end_time: string;
+    label?: string;
+  }[];
+  openDates?: { id: number; date: string }[];
+}
+
 export default function BookingForm({
   service,
   selectedAddons,
@@ -51,6 +69,10 @@ export default function BookingForm({
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [bookedSlots, setBookedSlots] = useState<string[]>([]);
   const [blackoutDates, setBlackoutDates] = useState<Date[]>([]);
+  const [openDates, setOpenDates] = useState<Date[]>([]);
+  const [timeBlocks, setTimeBlocks] = useState<
+    { date: string; start_time: string; end_time: string }[]
+  >([]);
   const [selectedTime, setSelectedTime] = useState<string>("");
 
   const [form, setForm] = useState<FormData>({
@@ -60,28 +82,65 @@ export default function BookingForm({
     description: "",
   });
 
-  /* -------------------- Fetch Blackout Dates -------------------- */
+  // -------------------- Fetch Calendar Data --------------------
   useEffect(() => {
-    async function getBlackoutDates() {
+    async function getCalendarData() {
       try {
-        const data = await fetchBlackoutDates();
-        setBlackoutDates(data.map((d: string) => parseISO(d)));
+        const data = (await fetchCalendarData()) as unknown as {
+          blockedDates: { id: number; date: string; label: string }[];
+          blockedRanges: {
+            id: number;
+            start_date: string;
+            end_date: string;
+            label: string;
+          }[];
+          timeBlocks: {
+            id: number;
+            date: string;
+            start_time: string;
+            end_time: string;
+            label?: string;
+          }[];
+          openDates?: { id: number; date: string }[];
+        };
+
+        const manualBlocked: Date[] = data.blockedDates.map((d) =>
+          parseISO(d.date),
+        );
+
+        const rangeBlocked: Date[] = [];
+        data.blockedRanges.forEach((r) => {
+          const start = parseISO(r.start_date);
+          const end = parseISO(r.end_date);
+          for (
+            let dt = new Date(start);
+            dt <= end;
+            dt.setDate(dt.getDate() + 1)
+          ) {
+            rangeBlocked.push(new Date(dt));
+          }
+        });
+
+        const open: Date[] = data.openDates?.map((d) => parseISO(d.date)) || [];
+
+        setBlackoutDates([...manualBlocked, ...rangeBlocked]);
+        setOpenDates(open);
+        setTimeBlocks(data.timeBlocks || []);
       } catch (err) {
-        console.error("Failed to fetch blackout dates", err);
+        console.error("Failed to fetch calendar data", err);
       }
     }
-    getBlackoutDates();
+
+    getCalendarData();
   }, []);
 
-  /* -------------------- Fetch Booked Slots -------------------- */
+  // -------------------- Fetch Booked Slots --------------------
   useEffect(() => {
     if (!date) return;
 
-    async function getBookedSlots() {
+    async function getBookedSlots(d: Date) {
       try {
-        if (!date) return;
-        const formattedDate = format(date, "yyyy-MM-dd");
-
+        const formattedDate = format(d, "yyyy-MM-dd");
         const slots = await fetchBookedSlots(formattedDate);
         setBookedSlots(slots);
       } catch (err) {
@@ -89,10 +148,28 @@ export default function BookingForm({
       }
     }
 
-    getBookedSlots();
+    getBookedSlots(date);
   }, [date]);
 
-  /* -------------------- Handle Next (Go to Confirmation) -------------------- */
+  // -------------------- Helper: Check if time slot is blocked --------------------
+  const normalizeTime = (t: string) => t.slice(0, 5); // "10:00:00" → "10:00"
+
+  const isTimeBlocked = (slot: string) => {
+    if (!date) return false;
+
+    const selectedDay = format(date, "yyyy-MM-dd");
+
+    return timeBlocks.some((b) => {
+      const blockDay = format(parseISO(b.date), "yyyy-MM-dd");
+
+      const start = normalizeTime(b.start_time);
+      const end = normalizeTime(b.end_time);
+
+      return blockDay === selectedDay && slot >= start && slot < end;
+    });
+  };
+
+  // -------------------- Handle Next --------------------
   const handleNext = () => {
     if (!date || !selectedTime || !form.name || !form.email || !form.phone) {
       alert("Please fill in all required fields and select a time.");
@@ -117,7 +194,26 @@ export default function BookingForm({
     );
   };
 
-  /* -------------------- Render -------------------- */
+  // -------------------- Disable Logic --------------------
+  const isDayDisabled = (day: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Past dates
+    if (day < today) return true;
+
+    // Weekends
+    const isWeekend = getDay(day) === 0 || getDay(day) === 6;
+
+    // Calendar blocks
+    const isBlocked = blackoutDates.some((b) => isSameDay(day, b));
+
+    // Open dates override
+    const isOpen = openDates.some((d) => isSameDay(day, d));
+
+    return (isWeekend || isBlocked) && !isOpen;
+  };
+
   return (
     <div className="w-full max-w-5xl mx-auto p-6 border-2 border-[#A30A24] bg-white text-[#A30A24]">
       <div className="flex flex-col gap-4">
@@ -129,13 +225,7 @@ export default function BookingForm({
               mode="single"
               selected={date}
               onSelect={(d) => setDate(d || undefined)}
-              disabled={(day) => {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                return (
-                  day < today || blackoutDates.some((b) => isSameDay(day, b))
-                );
-              }}
+              disabled={isDayDisabled}
               modifiersClassNames={{
                 selected: "bg-[#A30A24] text-white rounded",
                 today: "text-[#161616] rounded",
@@ -145,7 +235,7 @@ export default function BookingForm({
                   props: React.ButtonHTMLAttributes<HTMLButtonElement>,
                 ) => {
                   const ariaLabel = props["aria-label"] || "";
-                  if (ariaLabel.includes("Previous")) {
+                  if (ariaLabel.includes("Previous"))
                     return (
                       <button
                         {...props}
@@ -154,8 +244,7 @@ export default function BookingForm({
                         <GrFormPrevious />
                       </button>
                     );
-                  }
-                  if (ariaLabel.includes("Next")) {
+                  if (ariaLabel.includes("Next"))
                     return (
                       <button
                         {...props}
@@ -164,7 +253,6 @@ export default function BookingForm({
                         <GrFormNext />
                       </button>
                     );
-                  }
                   return <button {...props} />;
                 },
               }}
@@ -180,16 +268,15 @@ export default function BookingForm({
             <div className="grid grid-cols-3 gap-2">
               {TIME_SLOTS.map((slot) => {
                 const isBooked = bookedSlots.includes(slot);
+                const isBlocked = isTimeBlocked(slot);
                 const isSelected = selectedTime === slot;
                 return (
                   <button
                     key={slot}
                     type="button"
-                    disabled={isBooked}
+                    disabled={isBooked || isBlocked}
                     onClick={() => setSelectedTime(slot)}
-                    className={`border border-[#A30A24] rounded px-2 py-1 text-sm ${
-                      isSelected ? "bg-[#A30A24] text-white" : "text-[#A30A24]"
-                    } ${isBooked ? "opacity-30 cursor-not-allowed" : ""}`}
+                    className={`border border-[#A30A24] rounded px-2 py-1 text-sm ${isSelected ? "bg-[#A30A24] text-white" : "text-[#A30A24]"} ${isBooked || isBlocked ? "opacity-30 cursor-not-allowed" : ""}`}
                   >
                     {slot}
                   </button>
@@ -253,9 +340,7 @@ export default function BookingForm({
           {/* Right: Description */}
           <div className="flex flex-col">
             <label className="text-[16px] md:text-[18px] font-medium mb-1">
-              Please provide any additional details, ideas, specifications, or
-              requirements that will assist us in better understanding and
-              visualizing your vision.
+              Additional Details
             </label>
             <textarea
               placeholder="Tell us about your event..."

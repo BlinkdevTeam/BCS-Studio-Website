@@ -1,4 +1,5 @@
 import BookingDashboard from "./DashboardComponents/BookingDashboard";
+// import BookingDashboard from "../templates/PackagesTab";
 
 function Dashboard() {
   return <BookingDashboard />;
