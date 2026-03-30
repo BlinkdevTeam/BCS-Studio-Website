@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { fetchPackages } from "@/lib/postgres/api";
+
 import {
   Ic,
     I,
@@ -15,79 +17,26 @@ import PackageForm from "./PackageForm";
 const uid = () => Math.random().toString(36).slice(2, 9);
 
 // ─── Seed Data ────────────────────────────────────────────────────────────────
-const SEED_PACKAGES = [
-  {
-    id: "pkg-001",
-    title: "Solo Shoot",
-    description: "Perfect for individuals wanting professional portraits for LinkedIn, headshots, or personal branding.",
-    duration: 60,
-    price: 1500,
-    isActive: true,
-    color: "#A30A24",
-    inclusions: [
-      { id: uid(), text: "1 studio background of choice" },
-      { id: uid(), text: "10 edited digital photos" },
-      { id: uid(), text: "Online gallery delivery (3–5 days)" },
-    ],
-    addons: [
-      { id: uid(), label: "Extra 30 mins", price: 400 },
-      { id: uid(), label: "Rush delivery (24hrs)", price: 500 },
-      { id: uid(), label: "Printed 4R photos (10pcs)", price: 300 },
-    ],
-  },
-  {
-    id: "pkg-002",
-    title: "Graduation Shoot",
-    description: "Celebrate your milestone with a full studio session, perfect for graduation photos with toga or casual attires.",
-    duration: 90,
-    price: 2500,
-    isActive: true,
-    color: "#7a0a1e",
-    inclusions: [
-      { id: uid(), text: "Up to 2 outfit changes" },
-      { id: uid(), text: "20 edited digital photos" },
-      { id: uid(), text: "2 studio backgrounds" },
-      { id: uid(), text: "Online gallery delivery (3–5 days)" },
-    ],
-    addons: [
-      { id: uid(), label: "Extra outfit (+1)", price: 350 },
-      { id: uid(), label: "Aerial/drone shot add-on", price: 1200 },
-      { id: uid(), label: "Rush delivery (24hrs)", price: 500 },
-      { id: uid(), label: "Printed 5R photos (10pcs)", price: 450 },
-    ],
-  },
-  {
-    id: "pkg-003",
-    title: "Couple / Pre-nup",
-    description: "Romantic studio session for couples, engagements, anniversaries, or pre-nuptial shoots.",
-    duration: 120,
-    price: 3500,
-    isActive: false,
-    color: "#c41a3a",
-    inclusions: [
-      { id: uid(), text: "Up to 3 outfit changes" },
-      { id: uid(), text: "30 edited digital photos" },
-      { id: uid(), text: "3 studio backgrounds" },
-      { id: uid(), text: "Complimentary rose bouquet prop" },
-      { id: uid(), text: "Online gallery delivery (3–5 days)" },
-    ],
-    addons: [
-      { id: uid(), label: "Videographer add-on (30 min)", price: 2000 },
-      { id: uid(), label: "SDE film (same-day edit)", price: 3500 },
-      { id: uid(), label: "Printed album (20 pages)", price: 1800 },
-    ],
-  },
-];
+
 
 // ─── Main Export ──────────────────────────────────────────────────────────────
 export default function PackagesTab() {
   const [navOpen, setNavOpen] = useState(true);
-  const [packages, setPackages] = useState(SEED_PACKAGES);
+  const [packages, setPackages] = useState([]);
   const [editing, setEditing] = useState(null);       // null | pkg object (new pkg has id:"")
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [filterActive, setFilterActive] = useState("all"); // "all" | "active" | "inactive"
   const [search, setSearch] = useState("");
   const [toast, setToast] = useState({ text: "", ok: true });
+
+  useEffect(() => {
+  async function loadPackages() {
+    const data = await fetchPackages();
+    setPackages(data);
+  }
+
+  loadPackages();
+}, []);
 
   const flash = (text, ok = true) => {
     setToast({ text, ok });
@@ -101,16 +50,23 @@ export default function PackagesTab() {
     return matchSearch && matchFilter;
   });
 
-  const handleSave = (form) => {
-    if (form.id) {
-      setPackages(ps => ps.map(p => p.id === form.id ? form : p));
-      flash("Package updated successfully.");
+const handleSave = (savedPkg) => {
+  setPackages(prev => {
+    const exists = prev.some(p => p.id === savedPkg.id);
+
+    if (exists) {
+      return prev.map(p => (p.id === savedPkg.id ? savedPkg : p));
     } else {
-      setPackages(ps => [...ps, { ...form, id: `pkg-${uid()}` }]);
-      flash("Package created successfully.");
+      return [savedPkg, ...prev]; // add to top
     }
-    setEditing(null);
-  };
+  });
+
+  flash(
+    savedPkg.id ? "Package updated successfully." : "Package created successfully."
+  );
+
+  setEditing(null);
+};
 
   const handleToggle = (id) => {
     setPackages(ps => ps.map(p => p.id === id ? { ...p, isActive: !p.isActive } : p));
@@ -211,22 +167,6 @@ export default function PackagesTab() {
                   {label}
                 </button>
               ))}
-            </div>
-
-            {/* Stats */}
-            <div className="ml-auto flex items-center gap-4">
-              <div className="flex items-center gap-1.5 text-xs" style={{ color: "#7a6a70" }}>
-                <Ic d={I.peso} size={12} stroke="#A30A24" sw={2} />
-                <span>Avg. <strong style={{ color: "#A30A24" }}>
-                  ₱{packages.length ? Math.round(packages.reduce((s,p) => s + Number(p.price), 0) / packages.length).toLocaleString() : 0}
-                </strong></span>
-              </div>
-              <div className="flex items-center gap-1.5 text-xs" style={{ color: "#7a6a70" }}>
-                <Ic d={I.clock} size={12} stroke="#9a6a72" sw={2} />
-                <span>Avg. <strong style={{ color: "#4a3a42" }}>
-                  {packages.length ? durLabel(Math.round(packages.reduce((s,p) => s + p.duration, 0) / packages.length)) : "—"}
-                </strong></span>
-              </div>
             </div>
           </div>
 

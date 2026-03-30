@@ -41,3 +41,9 @@ export async function fetchCalendarData() {
     timeBlocks: { date: string; start_time: string; end_time: string }[]; // e.g. [{ date: "2026-03-29", start_time: "09:00", end_time: "11:00" }]
   }>;
 }
+
+export async function fetchPackages() {
+  const res = await fetch("/api/packages");
+  if (!res.ok) return [];
+  return res.json();
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Ic,
   I,
@@ -100,10 +100,6 @@ function PackageCard({ pkg, onEdit, onDuplicate, onDelete, onToggle }) {
           <span className="text-[11px]" style={{ color: "#7a5560" }}>
             <strong style={{ color: "#1a0a0d" }}>{pkg.addons.length}</strong> add-ons
           </span>
-        </div>
-        <div className="ml-auto pt-3 flex items-center gap-2">
-          <span className="text-[10px]" style={{ color: "#9a7a80" }}>{pkg.isActive ? "Visible to clients" : "Hidden"}</span>
-          <Toggle on={pkg.isActive} onChange={() => onToggle(pkg.id)} />
         </div>
       </div>
 

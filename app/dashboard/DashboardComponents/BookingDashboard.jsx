@@ -227,8 +227,8 @@ export default function BookingsDashboard() {
               })}
             />
           )  : activeTab === "Packages" ? (
-    <PackagesTab />
-  ) : (
+            <PackagesTab />
+          ) : (
             <div className="space-y-6">
               <div
                 className="flex items-center justify-between px-7 py-4 bg-white border-b"
@@ -245,14 +245,6 @@ export default function BookingsDashboard() {
                     Manage all your customer bookings
                   </p>
                 </div>
-                <button
-                  onClick={() => setModal({ type: "create" })}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
-                  style={{ background: "#A30A24" }}
-                >
-                  <Icon d={Icons.plus} size={15} strokeWidth={2.5} />
-                  New Booking
-                </button>
               </div>
               {/* Stats */}
               <div className="grid grid-cols-4 gap-4">
@@ -304,7 +296,7 @@ export default function BookingsDashboard() {
                       <Icon d={Icons.search} size={14} />
                     </span>
                     <input
-                      className="w-full pl-9 pr-4 py-2 rounded-lg text-sm outline-none"
+                      className="w-full pl-9 pr-4 py-2 rounded-lg text-sm outline-none text-[#6e6e6e]"
                       style={{
                         background: "#fdfafa",
                         border: "1.5px solid #e5d5d8",

@@ -1,27 +1,123 @@
-//app/book-now/Service.tsx
-
 "use client";
 
-import { useState } from "react";
-import { SERVICES, ServiceCategory } from "@/data/service";
+import { useState, useEffect, FormEvent } from "react";
 import SkewButton from "@/components/ui/buttons/SkewButton";
 
-// Include event in filters
+type Service = {
+  id: string;
+  title: string;
+  description?: string;
+  price: number;
+  type: "portrait" | "rental";
+};
+
+type ServiceCategory = "portraits" | "studio" | "event";
+
 const FILTERS = [
   { label: "Portraits", value: "portraits" },
   { label: "Studio Rental", value: "studio" },
   { label: "Event Coverage", value: "event" },
 ] as const;
 
+type FormState = {
+  name: string;
+  email: string;
+  phone: string;
+  message: string;
+};
+
 export default function ServiceSection() {
   const [activeFilter, setActiveFilter] =
     useState<ServiceCategory>("portraits");
 
-  // Displayed works depending on filter
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Form state for "Talk to Our Team"
+  const [form, setForm] = useState<FormState>({
+    name: "",
+    email: "",
+    phone: "",
+    message: "",
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
+
+  // 🔥 Fetch services
+  useEffect(() => {
+    async function loadServices() {
+      try {
+        const res = await fetch("/api/packages");
+        const data = await res.json();
+
+        type PackageAPI = {
+          id: string;
+          title: string;
+          description?: string;
+          price: number | string;
+          type?: "portrait" | "rental";
+        };
+
+        const mapped: Service[] = data.map((pkg: PackageAPI) => ({
+          id: pkg.id,
+          title: pkg.title,
+          description: pkg.description,
+          price: Number(pkg.price),
+          type: pkg.type ?? "portrait",
+        }));
+
+        setServices(mapped);
+      } catch (err) {
+        console.error("Failed to fetch services:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadServices();
+  }, []);
+
   const displayedServices =
     activeFilter === "event"
       ? []
-      : SERVICES.filter((service) => service.category === activeFilter);
+      : services.filter((service) =>
+          activeFilter === "portraits"
+            ? service.type === "portrait"
+            : service.type === "rental",
+        );
+
+  // -------------------- Handle TalkToOurTeam Submit --------------------
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setSuccess(false);
+    setError("");
+
+    if (!form.name || !form.email || !form.phone || !form.message) {
+      setError("Please fill in all fields.");
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/send-event-mail", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      if (!res.ok) throw new Error("Failed to send email.");
+
+      setSuccess(true);
+      setForm({ name: "", email: "", phone: "", message: "" });
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong. Please try again later.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <section className="px-6 lg:px-24 py-24 bg-white">
@@ -39,7 +135,7 @@ export default function ServiceSection() {
             <SkewButton
               key={filter.value}
               onClick={() => setActiveFilter(filter.value)}
-              isActive={activeFilter === filter.value} // <--- key change
+              isActive={activeFilter === filter.value}
             >
               <span className="text-[18px] md:text-[24px]">{filter.label}</span>
             </SkewButton>
@@ -47,53 +143,42 @@ export default function ServiceSection() {
         </div>
       </div>
 
-      {/* Works Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-        {/* Render filtered SERVICE */}
-        {displayedServices.map((service) => (
-          <div
-            key={service.id}
-            className="border overflow-hidden shadow-md bg-white rounded-xl"
-          >
-            {service.image.endsWith(".mp4") ? (
-              <video
-                src={service.image}
-                autoPlay
-                muted
-                loop
-                className="w-full h-[320px] object-cover"
-              />
-            ) : (
-              <img
-                src={service.image}
-                alt={service.title}
-                className="w-full h-[320px] object-cover"
-              />
-            )}
+      {/* Loading */}
+      {loading && (
+        <p className="text-center mt-12 text-gray-500">Loading services...</p>
+      )}
 
-            <div className="flex flex-col gap-4 p-8">
-              <div className="flex flex-row justify-between">
+      {/* Services Grid */}
+      {!loading && activeFilter !== "event" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          {displayedServices.map((service) => (
+            <div
+              key={service.id}
+              className="border shadow-md bg-white rounded-xl p-8 flex flex-col gap-4"
+            >
+              <div className="flex justify-between">
                 <h4 className="text-[24px] md:text-[36px] text-[#191919] font-bold">
                   {service.title}
                 </h4>
-                {service.price && (
-                  <h4 className="text-[24px] md:text-[36px] text-[#A30A24] font-bold">
-                    {service.price}
-                  </h4>
-                )}
+                <h4 className="text-[24px] md:text-[36px] text-[#A30A24] font-bold">
+                  ₱{service.price.toLocaleString()}
+                </h4>
               </div>
-              {service.desc && (
+
+              {service.description && (
                 <p className="text-[18px] md:text-[24px] text-[#808080] mt-2">
-                  {service.desc}
+                  {service.description}
                 </p>
               )}
-              <SkewButton href={`/book-now/services/${service.slug}`}>
+
+              <SkewButton href={`/book-now/services/${service.id}`}>
                 Book Now
               </SkewButton>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
       {/* Static Event Coverage card */}
       {activeFilter === "event" && (
         <div className="bg-white border overflow-hidden shadow-md rounded-xl p-8 flex flex-col gap-6 text-[#A30A24]">
@@ -102,7 +187,7 @@ export default function ServiceSection() {
           </h5>
 
           {/* Contact Form */}
-          <form className="flex flex-col gap-4">
+          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
             <div className="flex flex-col md:flex-row gap-4 w-full">
               {/* Full Name */}
               <div className="flex flex-col w-full">
@@ -112,7 +197,12 @@ export default function ServiceSection() {
                 <input
                   type="text"
                   placeholder="Your Full Name"
+                  value={form.name}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, name: e.target.value }))
+                  }
                   className="border border-gray-300 rounded-md px-4 py-2 text-[16px] md:text-[18px] focus:outline-none focus:ring-2 focus:ring-[#A30A24]"
+                  required
                 />
               </div>
 
@@ -126,30 +216,39 @@ export default function ServiceSection() {
                   inputMode="numeric"
                   pattern="[0-9]*"
                   placeholder="e.g. 09123456789"
-                  onInput={(e) => {
-                    const input = e.currentTarget;
-                    input.value = input.value.replace(/\D/g, "");
-                  }}
+                  value={form.phone}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      phone: e.target.value.replace(/\D/g, ""),
+                    }))
+                  }
                   className="border border-gray-300 rounded-md px-4 py-2 text-[16px] md:text-[18px] focus:outline-none focus:ring-2 focus:ring-[#A30A24]"
+                  required
                 />
               </div>
 
               {/* Email Address */}
               <div className="flex flex-col w-full">
-                <label className=" text-[16px] md:text-[18px] font-medium mb-1">
+                <label className="text-[16px] md:text-[18px] font-medium mb-1">
                   Email Address
                 </label>
                 <input
                   type="email"
                   placeholder="you@example.com"
+                  value={form.email}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, email: e.target.value }))
+                  }
                   className="border border-gray-300 rounded-md px-4 py-2 text-[16px] md:text-[18px] focus:outline-none focus:ring-2 focus:ring-[#A30A24]"
+                  required
                 />
               </div>
             </div>
 
             {/* Description */}
             <div className="flex flex-col">
-              <label className=" text-[16px] md:text-[18px] font-medium mb-1">
+              <label className="text-[16px] md:text-[18px] font-medium mb-1">
                 Please provide any additional details, ideas, specifications, or
                 requirements that will assist us in better understanding and
                 visualizing your vision.
@@ -157,24 +256,45 @@ export default function ServiceSection() {
               <textarea
                 placeholder="Tell us about your event..."
                 rows={5}
+                value={form.message}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, message: e.target.value }))
+                }
                 className="border border-gray-300 rounded-md px-4 py-2 text-[16px] md:text-[18px] focus:outline-none focus:ring-2 focus:ring-[#A30A24] resize-none"
-              ></textarea>
+                required
+              />
             </div>
+
+            {/* Success/Error Messages */}
+            {success && (
+              <p className="text-green-600 font-medium">
+                Message sent successfully!
+              </p>
+            )}
+            {error && <p className="text-red-600 font-medium">{error}</p>}
 
             {/* Submit Button */}
             <div className="mt-4">
-              <SkewButton href="#">Submit</SkewButton>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full h-12 bg-[#A30A24] text-white font-bold"
+              >
+                {submitting ? "Sending..." : "Submit"}
+              </button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Empty State */}
-      {activeFilter !== "event" && displayedServices.length === 0 && (
-        <p className="text-center  mt-12">
-          No works available for this category.
-        </p>
-      )}
+      {/* Empty state */}
+      {!loading &&
+        activeFilter !== "event" &&
+        displayedServices.length === 0 && (
+          <p className="text-center mt-12">
+            No services available for this category.
+          </p>
+        )}
     </section>
   );
 }
