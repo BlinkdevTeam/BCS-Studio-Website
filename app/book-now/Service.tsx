@@ -2,6 +2,7 @@
 
 import { useState, useEffect, FormEvent } from "react";
 import SkewButton from "@/components/ui/buttons/SkewButton";
+import { useSearchParams } from "next/navigation";
 
 type Service = {
   id: string;
@@ -27,8 +28,12 @@ type FormState = {
 };
 
 export default function ServiceSection() {
-  const [activeFilter, setActiveFilter] =
-    useState<ServiceCategory>("portraits");
+  const searchParams = useSearchParams();
+  const tab = searchParams.get("tab") as ServiceCategory | null;
+
+  const [activeFilter, setActiveFilter] = useState<ServiceCategory>(
+    tab === "event" ? "event" : "portraits",
+  );
 
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);

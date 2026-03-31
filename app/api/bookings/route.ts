@@ -159,3 +159,44 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// ─── PUT: Update booking ─────────────────────────────────────────────
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { id, customer, service, addons, date, time, totalPrice } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "Missing booking ID" }, { status: 400 });
+    }
+
+    const sql = `
+      UPDATE appointments
+      SET
+        booking_date = $1,
+        booking_time = $2,
+        addons = $3,
+        total_price = $4
+      WHERE id = $5
+      RETURNING *
+    `;
+
+    const values = [
+      date,
+      time,
+      JSON.stringify(addons ?? []),
+      totalPrice,
+      id,
+    ];
+
+    await query(sql, values);
+
+    return NextResponse.json({ message: "Booking updated successfully" });
+  } catch (error) {
+    console.error("PUT booking error:", error);
+    return NextResponse.json(
+      { error: "Failed to update booking" },
+      { status: 500 }
+    );
+  }
+}

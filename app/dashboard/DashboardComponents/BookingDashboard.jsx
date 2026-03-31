@@ -20,7 +20,6 @@ import PackagesTab from "../PackagesComponents/PackagesTab";
 
 // ── Helper to format date + time ──
 
-
 // ─── Main Dashboard ─────────────────────────────────────────────────────────────
 export default function BookingsDashboard() {
   const [bookings, setBookings] = useState([]);
@@ -123,6 +122,18 @@ export default function BookingsDashboard() {
     }
   };
 
+  const isPastBooking = (b) => {
+  if (!b.date) return false;
+
+  const bookingDate = parseLocalDateTime(b.date, b.time); // returns Date object
+  const now = new Date();
+
+  return bookingDate < now;
+};
+
+const currentBookings = filtered.filter((b) => !isPastBooking(b));
+const pastBookings = filtered.filter((b) => isPastBooking(b));
+
   return (
     <div
       className="flex h-screen font-sans overflow-hidden"
@@ -222,11 +233,14 @@ export default function BookingsDashboard() {
                   customer: b.customer?.name || "Unknown",
                   service: b.service?.title || "Service",
                   date: dt.toISOString().slice(0, 10), // YYYY-MM-DD
-                  time: dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                  time: dt.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
                 };
               })}
             />
-          )  : activeTab === "Packages" ? (
+          ) : activeTab === "Packages" ? (
             <PackagesTab />
           ) : (
             <div className="space-y-6">
@@ -378,7 +392,7 @@ export default function BookingsDashboard() {
                           </td>
                         </tr>
                       ) : (
-                        filtered.map((b, i) => (
+                        currentBookings.map((b, i) => (
                           <tr
                             key={b.id}
                             className="border-t transition-colors hover:bg-red-50/40"
@@ -439,8 +453,13 @@ export default function BookingsDashboard() {
                               )}
                             </td>
                             <td className="px-6 py-4">
-                              <p className="text-xs font-medium" style={{ color: "#1a0a0d" }}>
-                                {formatDateTime(parseLocalDateTime(b.date, b.time))}
+                              <p
+                                className="text-xs font-medium"
+                                style={{ color: "#1a0a0d" }}
+                              >
+                                {formatDateTime(
+                                  parseLocalDateTime(b.date, b.time),
+                                )}
                               </p>
                             </td>
                             <td className="px-6 py-4">
@@ -493,7 +512,7 @@ export default function BookingsDashboard() {
                                     onClick={() =>
                                       updateBookingStatus(b.id, "Confirmed")
                                     }
-                                    className="px-3 py-1.5 text-xs font-semibold rounded-full bg-green-600 text-white hover:bg-green-700 transition-colors"
+                                    className="px-3 py-1.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-500 hover:bg-emerald-500 hover:text-white transition-colors cursor-pointer"
                                     title="Mark as Confirmed"
                                   >
                                     Confirm
@@ -505,7 +524,7 @@ export default function BookingsDashboard() {
                                     onClick={() =>
                                       updateBookingStatus(b.id, "Cancelled")
                                     }
-                                    className="px-3 py-1.5 text-xs font-semibold rounded-full bg-red-600 text-white hover:bg-red-700 transition-colors"
+                                    className="px-3 py-1.5 text-xs font-semibold rounded-full bg-red-100 text-red-500 hover:bg-red-500 hover:text-white transition-colors cursor-pointer"
                                     title="Mark as Cancelled"
                                   >
                                     Cancel
@@ -513,6 +532,97 @@ export default function BookingsDashboard() {
                                 )}
                               </div>
                             </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              {/* NEW TABLE */}
+              <div
+                className="bg-white rounded-2xl overflow-hidden mt-6"
+                style={{
+                  boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
+                  border: "1px solid #f0e0e3",
+                }}
+              >
+                <div
+                  className="px-6 py-4 border-b"
+                  style={{ borderColor: "#f5eaec" }}
+                >
+                  <h2
+                    className="text-sm font-bold"
+                    style={{ color: "#A30A24" }}
+                  >
+                    Past Bookings
+                  </h2>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr style={{ background: "#fdf5f6" }}>
+                        {[
+                          "Booking ID",
+                          "Customer",
+                          "Service",
+                          "Schedule",
+                          "Total",
+                          "Status",
+                        ].map((h) => (
+                          <th
+                            key={h}
+                            className="text-left px-6 py-3.5 text-xs font-bold uppercase tracking-wider"
+                            style={{ color: "#b0707a" }}
+                          >
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {pastBookings.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="text-center py-10 text-xs">
+                            No past bookings
+                          </td>
+                        </tr>
+                      ) : (
+                        pastBookings.map((b) => (
+                          <tr
+                            key={b.id}
+                            className="border-t"
+                            style={{ borderColor: "#f5eaec" }}
+                          >
+                            <td className="px-6 py-4">{b.id}</td>
+
+                            <td className="px-6 py-4">
+                              {b.customer?.name || "Unknown"}
+                            </td>
+
+                            <td className="px-6 py-4">{b.service?.title}</td>
+
+                            <td className="px-6 py-4">
+                              {formatDateTime(
+                                parseLocalDateTime(b.date, b.time),
+                              )}
+                            </td>
+
+                            <td className="px-6 py-4">
+                              {fmtPrice(b.totalPrice)}
+                            </td>
+
+                            <td className="px-6 py-4">
+                              <span
+                                className={`px-2 py-1 rounded text-xs ${STATUS_STYLES[b.status]}`}
+                              >
+                                {b.status}
+                              </span>
+                            </td>
+
+                            {/* ❌ NO ACTIONS */}
                           </tr>
                         ))
                       )}

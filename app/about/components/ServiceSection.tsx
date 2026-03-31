@@ -2,29 +2,11 @@
 
 import { motion, Variants } from "framer-motion";
 import SkewButton from "../../../components/ui/buttons/SkewButton";
+import { PORTRAITS_FEATURES, PORTRAITS_IMAGES } from "../../../data/service";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { EffectCards, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-cards";
-
-const PORTRAITS_FEATURES = [
-  "Professional lighting equipment included",
-  "Props and furniture available",
-  "White Infinity wall",
-];
-
-const PORTRAITS_IMAGES = [
-  "8R 0.jpg",
-  "8R 4.jpg",
-  "8R 1.jpg",
-  "8R 2.jpg",
-  "8R 3.jpg",
-  "8R 5.jpg",
-  "8R 6.jpg",
-  "8R 7.jpg",
-  "8R 8.jpg",
-  "8R 9.jpg",
-];
 
 // Framer Motion Variants
 const fadeUp: Variants = {
@@ -118,7 +100,7 @@ export default function ServicesSection() {
           </motion.ul>
 
           <motion.div variants={fadeUp}>
-            <SkewButton href="/about">LEARN MORE</SkewButton>
+            <SkewButton href="/book-now">LEARN MORE</SkewButton>
           </motion.div>
         </motion.div>
 
@@ -239,7 +221,7 @@ export default function ServicesSection() {
             </motion.ul>
 
             <motion.div variants={fadeUp}>
-              <SkewButton href="/about">LEARN MORE</SkewButton>
+              <SkewButton href="/book-now">LEARN MORE</SkewButton>
             </motion.div>
           </motion.div>
         </motion.div>
@@ -308,7 +290,7 @@ export default function ServicesSection() {
           </motion.div>
 
           <motion.div variants={fadeUp}>
-            <SkewButton href="/about">LEARN MORE</SkewButton>
+            <SkewButton href="/works">LEARN MORE</SkewButton>
           </motion.div>
         </motion.div>
       </motion.section>

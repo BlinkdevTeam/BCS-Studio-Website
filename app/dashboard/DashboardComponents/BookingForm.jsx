@@ -6,6 +6,7 @@ function BookingForm({ initial, onSave, onCancel }) {
   // ─── State for available addons
   const [availableAddons, setAvailableAddons] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   // ─── Fetch all addons from API
   useEffect(() => {
@@ -50,13 +51,47 @@ function BookingForm({ initial, onSave, onCancel }) {
     });
   };
 
-  const submit = () => {
+const submit = async () => {
+  setSaving(true); // 🔥 START loading
+
+  try {
     const total =
       Number(form.service?.price || 0) +
       form.addons.reduce((sum, a) => sum + Number(a.price || 0), 0);
 
-    onSave({ ...form, totalPrice: total, id: initial.id });
-  };
+    const payload = {
+      id: initial.id,
+      customer: form.customer,
+      service: form.service,
+      addons: form.addons,
+      date: form.date,
+      time: form.time,
+      totalPrice: total,
+    };
+
+    const res = await fetch("/api/bookings", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to update booking");
+    }
+
+    onSave(payload); // optional UI refresh
+    alert("Booking updated successfully!");
+  } catch (err) {
+    console.error(err);
+    alert("Failed to update booking");
+  } finally {
+    setSaving(false); // 🔥 STOP loading (always runs)
+  }
+};
 
   if (!initial) return <p>No booking selected.</p>;
   if (loading) return <p>Loading addons...</p>;
@@ -194,10 +229,11 @@ function BookingForm({ initial, onSave, onCancel }) {
         </button>
         <button
           onClick={submit}
-          className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          disabled={saving}
+          className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{ background: "#A30A24" }}
         >
-          Save Booking
+          {saving ? "Saving..." : "Save Booking"}
         </button>
       </div>
     </div>

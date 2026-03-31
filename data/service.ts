@@ -19,6 +19,25 @@ export interface Service {
   addons: ServiceAddon[];
 }
 
+export const PORTRAITS_FEATURES = [
+  "Professional lighting equipment included",
+  "Props and furniture available",
+  "White Infinity wall",
+];
+
+export const PORTRAITS_IMAGES = [
+  "8R 0.jpg",
+  "8R 4.jpg",
+  "8R 1.jpg",
+  "8R 2.jpg",
+  "8R 3.jpg",
+  "8R 5.jpg",
+  "8R 6.jpg",
+  "8R 7.jpg",
+  "8R 8.jpg",
+  "8R 9.jpg",
+];
+
 
 // export const SERVICES: Service[] = [
 //   {
